@@ -55,15 +55,18 @@ jobs:
           DIST_DIR="satoshitrace-linux"
           mkdir -p "$DIST_DIR"
 
-          # Copy core application files
+          # Copy application codebase
           cp -r run.sh install.sh Dockerfile docker-compose.yml satoshitrace.desktop README.md TECHNICAL_REPORT.md "$DIST_DIR/"
           cp -r satoshitrace "$DIST_DIR/"
           cp -r sato "$DIST_DIR/"
           
-          # Clean git and cache artifacts from release bundle
+          # Strip heavy node_modules and build caches so extraction never fails on Linux
+          rm -rf "$DIST_DIR/sato/node_modules"
+          rm -rf "$DIST_DIR/sato/.output" "$DIST_DIR/sato/.vinxi" "$DIST_DIR/sato/.wrangler"
           find "$DIST_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
           find "$DIST_DIR" -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
           find "$DIST_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+          find "$DIST_DIR" -name ".DS_Store" -delete 2>/dev/null || true
 
           # Make launcher scripts executable
           chmod +x "$DIST_DIR/run.sh" "$DIST_DIR/install.sh" "$DIST_DIR/satoshitrace/run.sh" 2>/dev/null || true
