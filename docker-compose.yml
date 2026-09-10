@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  satoshitrace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: satoshitrace_platform
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./satoshitrace/backend/data:/app/satoshitrace/backend/data

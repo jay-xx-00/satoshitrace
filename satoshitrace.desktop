@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SatoshiTrace Forensic Intelligence
+GenericName=Bitcoin Forensic Analysis Tool
+Comment=AI-Powered Bitcoin P2P Transaction Traffic Forensics (SIH 2026 #26146)
+Exec=bash -c "cd $(dirname %k) && chmod +x run.sh && ./run.sh"
+Icon=security-high
+Terminal=true
+Categories=Security;Forensics;Development;
+StartupNotify=true
+Keywords=bitcoin;forensics;blockchain;ai;sih2026;cybercrime;

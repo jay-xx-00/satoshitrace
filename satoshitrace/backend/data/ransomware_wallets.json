@@ -1,0 +1,56 @@
+{
+  "description": "SatoshiTrace Cyber Threat Attribution Database (Ransomware & Darknet signatures)",
+  "version": "2026.2",
+  "threat_groups": [
+    {
+      "group_name": "LockBit 3.0 (ALPHV Affiliate)",
+      "target_profile": "Critical Infrastructure & Healthcare Extortion",
+      "severity": "CRITICAL",
+      "signatures": [
+        "bc1q_lockbit_",
+        "bc1qxyw491823lockbit_ransom_main",
+        "1LockBitMasterVaultPayment2026",
+        "bc1q378291048lockbit_subhop_alpha"
+      ]
+    },
+    {
+      "group_name": "BlackCat / ALPHV Syndicate",
+      "target_profile": "Enterprise Ransomware & Data Theft",
+      "severity": "CRITICAL",
+      "signatures": [
+        "bc1q_blackcat_",
+        "3BlackCatExtortionPool2026",
+        "bc1q882910alphv_exfil_vault"
+      ]
+    },
+    {
+      "group_name": "Hydra / Darknet Market Nexus",
+      "target_profile": "Illicit Narcotics & Carding Launderers",
+      "severity": "HIGH",
+      "signatures": [
+        "bc1q_darknet_",
+        "1HydraDarkMarketCashoutVault",
+        "bc1qhydra_escrow_deposit_9921"
+      ]
+    },
+    {
+      "group_name": "Lazarus Group (DPRK Cyber Bureau 121)",
+      "target_profile": "Crypto Exchange Heists & Cross-Chain Bridges",
+      "severity": "CRITICAL",
+      "signatures": [
+        "bc1qlazarus_heist_primary_vault",
+        "3LazarusCrossChainLaunderer991"
+      ]
+    },
+    {
+      "group_name": "Indian UPI-Crypto Mule Syndicate",
+      "target_profile": "Part-Time Job / Task Scam Laundering Rings",
+      "severity": "HIGH",
+      "signatures": [
+        "bc1q_mule_",
+        "bc1q_smurf_master_",
+        "bc1qindia_telecom_scam_ring_01"
+      ]
+    }
+  ]
+}
