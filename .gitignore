@@ -62,3 +62,5 @@ Thumbs.db
 *.tar.gz
 *.sha256
 *.zip
+*.exe
+

@@ -29,13 +29,13 @@ import { API_BASE } from "@/lib/api";
 
 export const TYPE_META: Record<
   GNodeType,
-  { color: string; icon: typeof Network; label: string; badge: string }
+  { color: string; bloom: string; icon: typeof Network; label: string; badge: string }
 > = {
-  ip: { color: "var(--data)", icon: Network, label: "IP Address", badge: "NETWORK HOP" },
-  txid: { color: "oklch(0.86 0.005 250)", icon: ArrowLeftRight, label: "Transaction", badge: "TX HOP" },
-  wallet: { color: "var(--success)", icon: Wallet, label: "Wallet", badge: "CLEAN WALLET" },
-  suspect: { color: "var(--critical)", icon: AlertTriangle, label: "Suspect Wallet", badge: "CRITICAL SUSPECT" },
-  cluster: { color: "var(--signal)", icon: Building2, label: "Syndicate Cluster", badge: "SYNDICATE HUB" },
+  ip: { color: "#7D8590", bloom: "0 0 8px rgba(125, 133, 144, 0.4)", icon: Network, label: "IP Address", badge: "NETWORK HOP" },
+  txid: { color: "#FFD60A", bloom: "0 0 10px rgba(255, 214, 10, 0.6)", icon: ArrowLeftRight, label: "Transaction", badge: "TX HOP" },
+  wallet: { color: "#39FF88", bloom: "0 0 10px rgba(57, 255, 136, 0.65)", icon: Wallet, label: "Wallet", badge: "CLEAN WALLET" },
+  suspect: { color: "#FF3B3B", bloom: "0 0 14px rgba(255, 59, 59, 0.8)", icon: AlertTriangle, label: "Suspect Wallet", badge: "CRITICAL RED" },
+  cluster: { color: "#FF9F1C", bloom: "0 0 12px rgba(255, 159, 28, 0.7)", icon: Building2, label: "Syndicate Cluster", badge: "SYNDICATE HUB" },
 };
 
 type LayoutMode = "constellation" | "force" | "flow";
@@ -84,31 +84,31 @@ function StatsOverlay({
   const s = useCountUp(suspectCount);
 
   return (
-    <div className="glass mono-xs pointer-events-none absolute left-4 top-20 z-20 flex items-center gap-2.5 rounded-full border border-white/10 bg-black/85 px-3 py-1 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
+    <div className="font-mono text-xs pointer-events-none absolute left-4 top-20 z-20 flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 shadow-lg backdrop-blur-md">
       <div className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-signal shadow-[0_0_8px_var(--signal)]" />
-        <span className="text-muted-foreground text-[10px]">
-          NODES <span className="font-bold text-foreground">{n}</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] shadow-[0_0_6px_#39FF88]" />
+        <span className="text-[#7D8590] text-[10px] tracking-wider">
+          NODES <span className="font-bold tabular-nums text-[#E6EDF3]">{n}</span>
         </span>
       </div>
-      <span className="h-2.5 w-px bg-white/10" />
-      <span className="text-muted-foreground text-[10px]">
-        EDGES <span className="font-bold text-foreground">{e}</span>
+      <span className="h-2.5 w-px bg-[#1C232E]" />
+      <span className="text-[#7D8590] text-[10px] tracking-wider">
+        EDGES <span className="font-bold tabular-nums text-[#E6EDF3]">{e}</span>
       </span>
-      <span className="h-2.5 w-px bg-white/10" />
-      <span className="text-muted-foreground text-[10px]">
-        SYNDICATES <span className="font-bold text-signal">{c}</span>
+      <span className="h-2.5 w-px bg-[#1C232E]" />
+      <span className="text-[#7D8590] text-[10px] tracking-wider">
+        SYNDICATES <span className="font-bold tabular-nums text-[#FF9F1C]">{c}</span>
       </span>
-      <span className="h-2.5 w-px bg-white/10" />
-      <span className="text-muted-foreground text-[10px]">
-        SUSPECTS <span className="font-bold text-critical">{s}</span>
+      <span className="h-2.5 w-px bg-[#1C232E]" />
+      <span className="text-[#7D8590] text-[10px] tracking-wider">
+        SUSPECTS <span className="font-bold tabular-nums text-[#FF3B3B]">{s}</span>
       </span>
       {isLive && (
         <>
-          <span className="h-2.5 w-px bg-white/10" />
-          <span className="flex items-center gap-1 font-semibold text-emerald-400 text-[10px]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-            LIVE KERNEL
+          <span className="h-2.5 w-px bg-[#1C232E]" />
+          <span className="flex items-center gap-1 font-semibold text-[#39FF88] text-[10px] tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] animate-pulse shadow-[0_0_6px_#39FF88]" />
+            KERNEL 127.0.0.1
           </span>
         </>
       )}
@@ -186,9 +186,9 @@ function NodeShape({
         "group absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing select-none",
         node.type === "cluster" ? "hover:z-30" : "",
         active ? "z-40" : "",
-        dim ? "opacity-20 scale-90 blur-[0.5px]" : "opacity-100 scale-100",
+        dim ? "opacity-15 scale-95" : "opacity-100 scale-100",
         inPath ? "scale-105 z-30" : "",
-        "transition-transform duration-150 ease-out",
+        "transition-all duration-300 ease-out",
       ].join(" ")}
       style={{
         left: `${pos.x}%`,
@@ -199,23 +199,23 @@ function NodeShape({
         onClick();
       }}
     >
-      {/* Interactive Holographic HUD Tooltip */}
+      {/* Interactive Terminal HUD Tooltip */}
       {isHovered && (
         <div
-          className="pointer-events-auto absolute bottom-full left-1/2 z-50 mb-3 -translate-x-1/2 w-64 rounded-xl border border-white/20 bg-black/95 p-3 shadow-2xl backdrop-blur-2xl animate-rise ring-1 ring-white/10"
+          className="pointer-events-auto absolute bottom-full left-1/2 z-50 mb-3 -translate-x-1/2 w-64 rounded border border-[#1C232E] bg-[#0D1117] p-3 shadow-2xl animate-rise"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
-            <span className="flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center justify-between pb-1.5 border-b border-[#1C232E]">
+            <span className="flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#7D8590]">
               <Icon size={12} style={{ color: tint }} /> {meta.label}
             </span>
             <span
-              className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold ${
+              className={`rounded px-1.5 py-0.5 text-[9px] font-mono font-bold tabular-nums ${
                 (node.risk ?? 0) >= 80
-                  ? "bg-critical/20 text-critical border border-critical/30"
+                  ? "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/30"
                   : (node.risk ?? 0) >= 40
-                    ? "bg-signal/20 text-signal border border-signal/30"
-                    : "bg-success/20 text-success border border-success/30"
+                    ? "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/30"
+                    : "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/30"
               }`}
             >
               RISK {node.risk ?? 15}%
@@ -337,33 +337,35 @@ function NodeShape({
         {node.type === "cluster" ? (
           <div className="flex flex-col items-center">
             <span
-              className="rounded-full px-3 py-0.5 text-[9.5px] font-mono font-bold tracking-wider text-foreground border border-white/20 bg-black/90 backdrop-blur-md shadow-xl whitespace-nowrap"
+              className="rounded px-2.5 py-0.5 text-[9.5px] font-mono font-bold tracking-wider text-[#E6EDF3] border border-[#1C232E] bg-[#0D1117] shadow-lg whitespace-nowrap"
               style={{ borderColor: color }}
             >
               {node.label}
             </span>
-            <span className="mt-0.5 text-[8.5px] font-mono text-muted-foreground whitespace-nowrap bg-black/60 px-2 rounded">
+            <span className="mt-0.5 text-[8.5px] font-mono text-[#7D8590] whitespace-nowrap bg-[#0D1117]/80 px-1.5 rounded border border-[#1C232E]/40">
               {node.sub}
             </span>
           </div>
         ) : node.type === "suspect" ? (
           <div className="flex flex-col items-center">
-            <span className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold text-critical border border-critical/60 bg-black/95 backdrop-blur-md shadow-xl shadow-critical/20 whitespace-nowrap">
-              <span className="h-2 w-2 rounded-full bg-critical animate-pulse shadow-[0_0_8px_#ef4444]" />
+            <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-mono font-bold text-[#FF3B3B] border border-[#FF3B3B]/60 bg-[#0D1117] shadow-lg shadow-[#FF3B3B]/10 whitespace-nowrap">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B3B] animate-pulse shadow-[0_0_6px_#FF3B3B]" />
               SUSPECT // {node.label}
             </span>
-            <span className="mt-0.5 text-[9px] font-mono text-critical/90 font-bold whitespace-nowrap bg-black/70 px-2 rounded border border-critical/20">
+            <span className="mt-0.5 text-[9px] font-mono text-[#FF3B3B]/90 font-bold tabular-nums whitespace-nowrap bg-[#0D1117] px-1.5 rounded border border-[#FF3B3B]/30">
               {node.risk}% RISK • {node.sub.split("•")[1]?.trim() || "FLAGGED"}
             </span>
           </div>
         ) : node.type === "ip" ? (
-          <span className="rounded px-2 py-0.5 text-[8.5px] font-mono text-data border border-data/30 bg-black/80 backdrop-blur-sm whitespace-nowrap shadow-md">
-            🌐 {node.label}
+          <span className="rounded px-2 py-0.5 text-[8.5px] font-mono text-[#7D8590] border border-[#1C232E] bg-[#0D1117] whitespace-nowrap shadow">
+            HOP: {node.label}
           </span>
         ) : (
           <span
-            className={`rounded px-1.5 py-0.2 text-[8px] font-mono text-muted-foreground border border-white/10 bg-black/75 backdrop-blur-sm whitespace-nowrap transition-opacity duration-150 ${
-              active || inPath || isHovered ? "opacity-100 text-foreground border-signal/40" : "opacity-60 group-hover:opacity-100"
+            className={`rounded px-1.5 py-0.2 text-[8px] font-mono whitespace-nowrap transition-opacity duration-150 ${
+              active || inPath || isHovered
+                ? "opacity-100 text-[#39FF88] border border-[#39FF88]/40 bg-[#0D1117]"
+                : "opacity-60 group-hover:opacity-100 text-[#7D8590] border border-[#1C232E] bg-[#0D1117]/90"
             }`}
           >
             {node.label}
@@ -912,7 +914,7 @@ export function GraphCanvas({
   /* -------------------------------------------------------------------------- */
   return (
     <div
-      className="relative h-full w-full overflow-hidden bg-[#07090E] select-none cursor-grab active:cursor-grabbing"
+      className="relative h-full w-full overflow-hidden bg-[#0A0E14] select-none cursor-grab active:cursor-grabbing"
       onClick={() => onSelect(null)}
       onWheel={handleWheel}
       onMouseDown={handleCanvasMouseDown}
@@ -920,12 +922,7 @@ export function GraphCanvas({
       onMouseUp={handleCanvasMouseUp}
     >
       {/* High-Precision Tactical Grid Background */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.07] bg-[radial-gradient(#38BDF8_1px,transparent_1px)] [background-size:24px_24px]" />
-
-      {/* Ambient Lighting */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,color-mix(in_oklab,var(--critical)_9%,transparent),transparent_50%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_25%,color-mix(in_oklab,var(--signal)_8%,transparent),transparent_50%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_75%,color-mix(in_oklab,#8B5CF6_7%,transparent),transparent_50%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[radial-gradient(#1C232E_1px,transparent_1px)] [background-size:20px_20px]" />
 
       {/* Stats Counter Overlay */}
       <StatsOverlay
@@ -938,51 +935,51 @@ export function GraphCanvas({
 
       {/* Main Floating Island Control Bar */}
       <div
-        className="glass absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/15 bg-black/80 px-3 py-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10"
+        className="font-mono absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1.5 shadow-xl backdrop-blur-md"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Layout Switcher */}
-        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10">
+        <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded border border-[#1C232E]">
           <button
             type="button"
             onClick={() => setLayoutMode("constellation")}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-mono font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "constellation"
-                ? "bg-signal text-black shadow-[0_0_12px_var(--signal)]"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
+                : "text-[#7D8590] hover:text-[#E6EDF3]"
             }`}
             title="Constellation Orbital View"
           >
-            <Radio size={11} /> Constellations
+            <Radio size={11} /> CONSTELLATION
           </button>
           <button
             type="button"
             onClick={() => setLayoutMode("force")}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-mono font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "force"
-                ? "bg-signal text-black shadow-[0_0_12px_var(--signal)]"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
+                : "text-[#7D8590] hover:text-[#E6EDF3]"
             }`}
             title="Force Dynamic Physics (Drag Enabled)"
           >
-            <Zap size={11} /> Force Dynamic
+            <Zap size={11} /> FORCE
           </button>
           <button
             type="button"
             onClick={() => setLayoutMode("flow")}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-mono font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "flow"
-                ? "bg-signal text-black shadow-[0_0_12px_var(--signal)]"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
+                : "text-[#7D8590] hover:text-[#E6EDF3]"
             }`}
             title="Forensic Fund Flow (Left-to-Right Pipeline)"
           >
-            <GitFork size={11} /> Fund Flow
+            <GitFork size={11} /> FLOW
           </button>
         </div>
 
-        <span className="h-4 w-px bg-white/15 mx-0.5" />
+        <span className="h-4 w-px bg-[#1C232E] mx-0.5" />
 
         {/* Trace Laundering Trail Toggle */}
         <button
@@ -995,40 +992,40 @@ export function GraphCanvas({
               });
             }
           }}
-          className={`flex items-center gap-1 rounded-full px-3 py-1 text-[10.5px] font-mono font-bold transition-all ${
+          className={`flex items-center gap-1 rounded px-2.5 py-1 text-[10px] font-mono font-semibold transition-all ${
             traceTrailActive || Boolean(selected)
-              ? "text-critical bg-critical/20 border border-critical/40 shadow-[0_0_12px_rgba(239,68,68,0.3)]"
-              : "text-muted-foreground hover:text-foreground bg-white/5"
+              ? "text-[#FF3B3B] bg-[#FF3B3B]/15 border border-[#FF3B3B]/40 shadow-[0_0_10px_rgba(255,59,59,0.25)]"
+              : "text-[#7D8590] hover:text-[#E6EDF3] bg-[#0A0E14] border border-[#1C232E]"
           }`}
           title="Highlight Money Trail from Origin to Destination"
         >
-          <Route size={12} className={traceTrailActive || Boolean(selected) ? "animate-pulse text-critical" : ""} />
-          <span>Trace Trail</span>
+          <Route size={12} className={traceTrailActive || Boolean(selected) ? "animate-pulse text-[#FF3B3B]" : ""} />
+          <span>TRACE TRAIL</span>
         </button>
 
         {/* Live Fund Particle Flow Toggle */}
         <button
           type="button"
           onClick={() => setFlowAnimation((v) => !v)}
-          className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-mono transition-all ${
+          className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-mono transition-all ${
             flowAnimation
-              ? "text-emerald-400 bg-emerald-400/15 border border-emerald-400/30"
-              : "text-muted-foreground hover:text-foreground"
+              ? "text-[#39FF88] bg-[#39FF88]/15 border border-[#39FF88]/30"
+              : "text-[#7D8590] hover:text-[#E6EDF3]"
           }`}
           title="Toggle Animated Particle Trails"
         >
-          <Sparkles size={12} className={flowAnimation ? "animate-pulse text-emerald-400" : ""} />
-          <span className="hidden sm:inline">Flow Trails</span>
+          <Sparkles size={11} className={flowAnimation ? "animate-pulse text-[#39FF88]" : ""} />
+          <span className="hidden sm:inline">PULSE</span>
         </button>
 
-        <span className="h-4 w-px bg-white/15 mx-0.5" />
+        <span className="h-4 w-px bg-[#1C232E] mx-0.5" />
 
         {/* Zoom & Canvas Actions */}
         <button
           type="button"
           onClick={() => zoom(0.25)}
           title="Zoom In (or use Mouse Wheel)"
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
         >
           <ZoomIn size={13} />
         </button>
@@ -1036,7 +1033,7 @@ export function GraphCanvas({
           type="button"
           onClick={() => zoom(-0.25)}
           title="Zoom Out (or use Mouse Wheel)"
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
         >
           <ZoomOut size={13} />
         </button>
@@ -1044,9 +1041,9 @@ export function GraphCanvas({
           type="button"
           onClick={() => setView({ s: 1, x: 0, y: 0 })}
           title="Reset Fit"
-          className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-mono text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-mono text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
         >
-          <Crosshair size={12} /> Fit
+          <Crosshair size={11} /> FIT
         </button>
 
         {/* 1-Click Auto Organise Button */}
@@ -1054,13 +1051,13 @@ export function GraphCanvas({
           type="button"
           onClick={handleAutoOrganise}
           title="Automatically Reorganize & Declutter Graph Layout"
-          className="flex items-center gap-1.5 rounded-full bg-signal/15 px-3 py-1 text-[10.5px] font-mono font-bold text-signal border border-signal/35 hover:bg-signal/25 active:scale-95 transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+          className="flex items-center gap-1 rounded bg-[#39FF88]/15 px-2.5 py-1 text-[10px] font-mono font-semibold text-[#39FF88] border border-[#39FF88]/30 hover:bg-[#39FF88]/25 active:scale-95 transition-all"
         >
-          <Sparkles size={11} className="text-signal animate-pulse" />
-          <span>Auto Organise</span>
+          <Sparkles size={11} className="text-[#39FF88]" />
+          <span>ORGANISE</span>
         </button>
 
-        <span className="h-4 w-px bg-white/15 mx-0.5" />
+        <span className="h-4 w-px bg-[#1C232E] mx-0.5" />
 
         <button
           type="button"
@@ -1068,10 +1065,10 @@ export function GraphCanvas({
             loadLiveGraph();
             toast.info("Rescanning live NetworkX topology…");
           }}
-          className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-mono text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-mono text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
         >
-          <RefreshCw size={12} className={loading ? "animate-spin text-signal" : ""} />
-          <span className="hidden sm:inline">Rescan</span>
+          <RefreshCw size={11} className={loading ? "animate-spin text-[#39FF88]" : ""} />
+          <span className="hidden sm:inline">RESCAN</span>
         </button>
 
         <button
@@ -1081,37 +1078,37 @@ export function GraphCanvas({
               description: "SHA-256 evidence chain of custody cryptographically bound.",
             })
           }
-          className="flex items-center gap-1 rounded-full bg-signal/20 px-3 py-1 text-[10.5px] font-mono font-bold text-signal border border-signal/40 hover:bg-signal/30"
+          className="flex items-center gap-1 rounded bg-[#0A0E14] px-2.5 py-1 text-[10px] font-mono font-semibold text-[#39FF88] border border-[#39FF88]/30 hover:bg-[#39FF88]/15"
         >
-          <Camera size={12} />
-          <span className="hidden sm:inline">Sec 65B Snapshot</span>
+          <Camera size={11} />
+          <span className="hidden sm:inline">SEC 65B</span>
         </button>
       </div>
 
-      {/* Entity Filter Chips (Floating Bottom-Center Bar, Docked at Bottom-3) */}
+      {/* Entity Filter Chips (Floating Bottom-Center Bar) */}
       <div
-        className="glass absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/85 px-3 py-1 shadow-2xl backdrop-blur-xl ring-1 ring-white/5"
+        className="font-mono absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 shadow-lg backdrop-blur-md"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <span className="text-[9.5px] font-mono text-muted-foreground mr-1">FILTER:</span>
+        <span className="text-[9px] text-[#7D8590] mr-1 tracking-wider">FILTER:</span>
         {(
           [
             { id: "all", label: `ALL (${nodes.length})` },
-            { id: "suspect", label: `🚨 SUSPECTS (${suspectCount})` },
-            { id: "cluster", label: `🏢 SYNDICATES (${clusterCount})` },
-            { id: "ip", label: "🌐 TOR / IP" },
-            { id: "wallet", label: "💼 WALLETS" },
+            { id: "suspect", label: `SUSPECTS (${suspectCount})` },
+            { id: "cluster", label: `SYNDICATES (${clusterCount})` },
+            { id: "ip", label: "TOR/IP" },
+            { id: "wallet", label: "WALLETS" },
           ] as const
         ).map((f) => (
           <button
             key={f.id}
             type="button"
             onClick={() => setFilterType(f.id)}
-            className={`rounded-full px-2.5 py-0.5 text-[9.5px] font-mono font-semibold transition-all ${
+            className={`rounded px-2 py-0.5 text-[9px] font-mono transition-all ${
               filterType === f.id
-                ? "bg-white/20 text-foreground border border-white/30"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                ? "bg-[#39FF88]/20 text-[#39FF88] border border-[#39FF88]/40"
+                : "text-[#7D8590] hover:text-[#E6EDF3] hover:bg-[#1C232E]/60"
             }`}
           >
             {f.label}
@@ -1119,30 +1116,30 @@ export function GraphCanvas({
         ))}
       </div>
 
-      {/* Directional Transfer Trail Banner (Shows "FROM WHERE TO WHERE IT HAS TRANSFERRED" at Bottom-14 with no overlap) */}
+      {/* Directional Transfer Trail Banner */}
       {(traceTrailActive || (selected && selected.type !== "cluster")) && (
         <div
-          className="glass absolute bottom-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded-xl border border-critical/50 bg-black/95 px-4 py-2 shadow-2xl shadow-critical/20 backdrop-blur-2xl ring-1 ring-critical/30 animate-rise max-w-[calc(100vw-380px)] overflow-x-auto whitespace-nowrap"
+          className="font-mono absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded border border-[#FF3B3B]/40 bg-[#0D1117] px-4 py-1.5 shadow-xl backdrop-blur-md animate-rise max-w-[calc(100vw-380px)] overflow-x-auto whitespace-nowrap"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="h-2 w-2 rounded-full bg-critical animate-ping shadow-[0_0_8px_#ef4444]" />
-            <span className="text-[10.5px] font-mono font-bold text-critical">
-              TRANSFER TRAIL CONNECTED:
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B3B] animate-ping" />
+            <span className="text-[10px] font-bold text-[#FF3B3B] tracking-wider">
+              FUND FLOW TRACE:
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-foreground shrink-0">
-            <span className="rounded bg-critical/20 px-2 py-0.5 font-bold text-critical border border-critical/30">
+          <div className="flex items-center gap-1.5 text-[9.5px] text-[#E6EDF3] shrink-0">
+            <span className="rounded bg-[#FF3B3B]/15 px-2 py-0.5 font-bold text-[#FF3B3B] border border-[#FF3B3B]/30">
               ORIGIN: {selected && selected.type !== "cluster" ? selected.label : "bc1q_loc"}
             </span>
-            <ArrowRight size={12} className="text-signal shrink-0" />
-            <span className="rounded bg-signal/20 px-2 py-0.5 font-bold text-signal border border-signal/30">
+            <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
+            <span className="rounded bg-[#FF9F1C]/15 px-2 py-0.5 font-bold text-[#FF9F1C] border border-[#FF9F1C]/30 tabular-nums">
               PEELING HOP: tx_peel_fa1e (22.99 BTC)
             </span>
-            <ArrowRight size={12} className="text-signal shrink-0" />
-            <span className="rounded bg-warn/20 px-2 py-0.5 font-bold text-warn border border-warn/30">
+            <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
+            <span className="rounded bg-[#FFD60A]/15 px-2 py-0.5 font-bold text-[#FFD60A] border border-[#FFD60A]/30 tabular-nums">
               CASHOUT MULE: bc1q_smu (2.0 BTC)
             </span>
           </div>
@@ -1152,9 +1149,9 @@ export function GraphCanvas({
               setTraceTrailActive(false);
               onSelect(null);
             }}
-            className="text-[9.5px] font-mono text-muted-foreground hover:text-foreground ml-2 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 shrink-0"
+            className="text-[9px] text-[#7D8590] hover:text-[#E6EDF3] ml-2 px-1.5 py-0.5 rounded bg-[#1C232E] hover:bg-[#1C232E]/80 shrink-0"
           >
-            Clear
+            CLEAR
           </button>
         </div>
       )}
@@ -1425,13 +1422,13 @@ export function GraphCanvas({
 
       {/* Radar Minimap with Click-to-Pan */}
       <div
-        className="glass absolute bottom-4 right-4 z-20 h-[96px] w-[130px] overflow-hidden rounded-xl border border-white/15 bg-black/85 p-1 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10"
+        className="font-mono absolute bottom-4 right-4 z-20 h-[96px] w-[130px] overflow-hidden rounded border border-[#1C232E] bg-[#0D1117] p-1 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         title="Tactical Radar Minimap"
       >
-        <div className="absolute top-1 left-2 flex items-center gap-1 text-[8px] font-mono text-muted-foreground uppercase font-bold">
-          <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" /> SATO RADAR
+        <div className="absolute top-1 left-2 flex items-center gap-1 text-[8px] font-mono text-[#7D8590] uppercase font-bold tracking-wider">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] animate-pulse" /> RADAR
         </div>
         <svg
           viewBox="0 0 100 80"
@@ -1461,9 +1458,9 @@ export function GraphCanvas({
                 y1={(a.y / 100) * 80}
                 x2={b.x}
                 y2={(b.y / 100) * 80}
-                stroke="var(--border)"
-                strokeWidth={0.4}
-                opacity={0.4}
+                stroke="#1C232E"
+                strokeWidth={0.6}
+                opacity={0.6}
               />
             );
           })}
@@ -1477,10 +1474,10 @@ export function GraphCanvas({
                 r={n.type === "cluster" ? 3.5 : n.type === "suspect" ? 2.8 : 1.2}
                 fill={
                   n.type === "cluster"
-                    ? (n.accent ?? "var(--signal)")
+                    ? (n.accent ?? "#FF9F1C")
                     : n.type === "suspect"
-                      ? "var(--critical)"
-                      : TYPE_META[n.type]?.color || "#FFF"
+                      ? "#FF3B3B"
+                      : TYPE_META[n.type]?.color || "#39FF88"
                 }
                 opacity={0.9}
               />
@@ -1491,29 +1488,29 @@ export function GraphCanvas({
             y={Math.max(0, 40 - 40 / view.s - view.y / 8)}
             width={Math.min(100, 100 / view.s)}
             height={Math.min(80, 80 / view.s)}
-            fill="color-mix(in oklab, var(--signal) 15%, transparent)"
-            stroke="var(--signal)"
-            strokeWidth={1}
-            rx={2}
+            fill="rgba(57, 255, 136, 0.08)"
+            stroke="#39FF88"
+            strokeWidth={0.8}
+            rx={1}
           />
         </svg>
       </div>
 
       {/* Tactical Status & Telemetry Bar with Zoom Readout */}
-      <div className="glass mono-xs absolute bottom-4 left-4 z-20 flex items-center gap-3 rounded-full border border-white/10 bg-black/70 px-4 py-1.5 text-[10px] text-muted-foreground backdrop-blur-xl shadow-xl">
-        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-          <Activity size={12} className="text-signal" /> SATOSHITRACE KERNEL // V4.2
+      <div className="font-mono absolute bottom-4 left-4 z-20 flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 text-[10px] text-[#7D8590] shadow-lg backdrop-blur-md">
+        <span className="flex items-center gap-1.5 font-bold text-[#E6EDF3]">
+          <Activity size={12} className="text-[#39FF88]" /> SATO // KERNEL V4.2
         </span>
-        <span className="h-3 w-px bg-white/10" />
-        <span>LAYOUT: {layoutMode.toUpperCase()}</span>
-        <span className="h-3 w-px bg-white/10" />
-        <span className="text-emerald-400 font-medium">ANTI-COLLISION CLEARANCE: OK</span>
-        <span className="h-3 w-px bg-white/10" />
+        <span className="h-2.5 w-px bg-[#1C232E]" />
+        <span>LAYOUT: <span className="text-[#E6EDF3] font-semibold">{layoutMode.toUpperCase()}</span></span>
+        <span className="h-2.5 w-px bg-[#1C232E]" />
+        <span className="text-[#39FF88] font-semibold">DEFENSE AIR-GAP: SECURE</span>
+        <span className="h-2.5 w-px bg-[#1C232E]" />
         <span className="flex items-center gap-1">
-          <Move size={10} className="text-muted-foreground" /> SCROLL TO ZOOM • DRAG TO PAN
+          <Move size={10} className="text-[#7D8590]" /> PAN / ZOOM ACTIVE
         </span>
-        <span className="h-3 w-px bg-white/10" />
-        <span>ZOOM: {view.s.toFixed(2)}×</span>
+        <span className="h-2.5 w-px bg-[#1C232E]" />
+        <span className="tabular-nums font-semibold text-[#E6EDF3]">ZOOM: {view.s.toFixed(2)}×</span>
       </div>
     </div>
   );

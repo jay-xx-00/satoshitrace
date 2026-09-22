@@ -92,6 +92,13 @@ export async function simulateAttack() {
   return resp.json();
 }
 
+export async function resetSession() {
+  const resp = await fetch(`${API_BASE}/reset`, { method: "POST" });
+  if (!resp.ok) throw new Error("Reset session failed");
+  return resp.json();
+}
+
+
 export async function uploadSeizedLogs(file: File) {
   const formData = new FormData();
   formData.append("file", file);
@@ -133,18 +140,32 @@ export function getPdfReportUrl(jobId = "default", caseId = "CASE-2026-CBI-0891"
   return `${API_BASE}/report/${jobId}/pdf?case_id=${encodeURIComponent(caseId)}`;
 }
 
+export interface OllamaStatus {
+  online: boolean;
+  host: string | null;
+  models: string[];
+  active_model: string;
+}
+
 export interface AiChatResponse {
   response: string;
   source: string; // "ollama:llama3.2" | "sato_nlg_engine"
   offline: boolean;
 }
 
-export async function aiChat(message: string, jobId = "default"): Promise<AiChatResponse> {
+export async function fetchOllamaStatus(): Promise<OllamaStatus> {
+  const resp = await fetch(`${API_BASE}/ai/ollama_status`);
+  if (!resp.ok) return { online: false, host: null, models: [], active_model: "sato_nlg_engine" };
+  return resp.json();
+}
+
+export async function aiChat(message: string, jobId = "default", model?: string): Promise<AiChatResponse> {
   const resp = await fetch(`${API_BASE}/ai/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, job_id: jobId }),
+    body: JSON.stringify({ message, job_id: jobId, model }),
   });
   if (!resp.ok) throw new Error("AI chat endpoint failed");
   return resp.json();
 }
+

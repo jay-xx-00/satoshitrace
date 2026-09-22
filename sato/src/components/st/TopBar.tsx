@@ -8,11 +8,13 @@ export function TopBar({
   breadcrumb,
   onOpenSato,
   onOpenTour,
+  onOpenCommandPalette,
 }: {
   title: string;
   breadcrumb: string;
   onOpenSato?: () => void;
   onOpenTour?: () => void;
+  onOpenCommandPalette?: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -74,8 +76,16 @@ export function TopBar({
     }
   };
 
+  const triggerCmdK = () => {
+    if (onOpenCommandPalette) {
+      onOpenCommandPalette();
+    } else {
+      window.dispatchEvent(new CustomEvent("satoshitrace-open-cmdk"));
+    }
+  };
+
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-border bg-panel/70 px-5 backdrop-blur font-mono">
+    <header className="flex h-13 shrink-0 items-center justify-between border-b border-[#1C232E] bg-[#0D1117] px-4 font-mono select-none">
       <input
         type="file"
         ref={fileInputRef}
@@ -84,81 +94,111 @@ export function TopBar({
         accept=".csv,.json,.xml"
       />
 
-      <div className="w-[220px] shrink-0">
-        <h1 className="text-[14px] font-bold tracking-wide text-foreground">{title}</h1>
-        <p className="mono-xs mt-0.5 text-muted-foreground truncate text-[10.5px]">{breadcrumb}</p>
-      </div>
-
-      <div className="flex flex-1 justify-center">
-        <div className="group relative w-[360px] max-w-full">
-          <Search
-            size={13}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            placeholder="Search wallet, TXID, IP, country, ASN..."
-            className="h-8.5 w-full rounded-full border border-input bg-background/70 pl-9 pr-12 text-[11.5px] text-foreground outline-none transition-all duration-150 placeholder:text-muted-foreground focus:border-signal/60 focus:shadow-[var(--glow-signal)]"
-          />
-          <span className="mono-xs absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border px-1.5 py-0.5 text-muted-foreground text-[9.5px]">
-            ⌘K
-          </span>
+      {/* Left: View Title & Operational Breadcrumb */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3] truncate">{title}</h1>
+            <span className="rounded bg-[#1C232E] px-1.5 py-0.2 text-[9px] text-[#7D8590] border border-[#1C232E]">
+              LOCAL-AIRGAP
+            </span>
+          </div>
+          <p className="text-[10px] text-[#7D8590] truncate font-mono">{breadcrumb}</p>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {/* SATO OS Kernel Diagnostic Trigger */}
+      {/* Center: Command Palette Trigger Search Box */}
+      <div className="flex items-center justify-center flex-1 max-w-md mx-4">
+        <button
+          type="button"
+          onClick={triggerCmdK}
+          className="group flex h-7.5 w-full items-center justify-between rounded border border-[#1C232E] bg-[#0A0E14] px-2.5 text-xs text-[#7D8590] hover:border-[#39FF88]/40 hover:text-[#E6EDF3] transition-all"
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Search size={12} className="text-[#7D8590] group-hover:text-[#39FF88] transition-colors" />
+            <span className="text-[10.5px] truncate">Search wallet, TXID, IP, case…</span>
+          </div>
+          <kbd className="rounded border border-[#1C232E] bg-[#0D1117] px-1.5 py-0.5 text-[9px] font-mono text-[#7D8590]">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
+
+      {/* Right: Defense Health Badges & Tactical Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Air-Gap Status Indicator */}
+        <div className="hidden lg:flex items-center gap-1.5 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10px] text-[#7D8590]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] animate-pulse shadow-[0_0_6px_#39FF88]" />
+          <span className="text-[#39FF88] font-bold">100% AIR-GAPPED</span>
+          <span className="text-[#1C232E]">|</span>
+          <span className="text-[#7D8590] tabular-nums">127.0.0.1</span>
+        </div>
+
+        {/* Active Case Badge */}
+        <div className="hidden md:flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10px]">
+          <span className="text-[#7D8590]">CASE:</span>
+          <span className="font-bold text-[#E6EDF3]">CBI-2026-0471</span>
+        </div>
+
+        {/* Examiner ID */}
+        <div className="hidden xl:flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10px]">
+          <span className="text-[#7D8590]">EXAMINER:</span>
+          <span className="font-bold text-[#39FF88]">#8412</span>
+        </div>
+
+        <span className="h-4 w-px bg-[#1C232E] mx-0.5" />
+
+        {/* Kernel Diagnostic Boot */}
         <button
           onClick={triggerSato}
-          className="lift flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:border-signal/50 hover:text-signal hover:bg-signal/10 active:scale-95 transition-all"
+          className="flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10.5px] text-[#7D8590] hover:text-[#39FF88] hover:border-[#39FF88]/40 active:scale-95 transition-all"
           title="Re-run SATO OS Forensic Kernel Diagnostic"
         >
-          <Cpu size={13} className="text-signal" />
-          <span>SATO OS</span>
+          <Cpu size={12} className="text-[#39FF88]" />
+          <span className="hidden sm:inline">KERNEL</span>
         </button>
 
-        {/* 2-Min Demo Tour Trigger */}
+        {/* 2-Min Demo Tour */}
         <button
           onClick={triggerTour}
-          className="lift flex items-center gap-1.5 rounded-md border border-signal/40 bg-signal/10 px-2.5 py-1.5 text-[11px] font-semibold text-signal hover:bg-signal/20 active:scale-95 transition-all"
-          title="Start 2-Minute SIH Winning Demo Tour"
+          className="flex items-center gap-1 rounded border border-[#39FF88]/30 bg-[#39FF88]/10 px-2 py-1 text-[10.5px] font-semibold text-[#39FF88] hover:bg-[#39FF88]/20 active:scale-95 transition-all"
+          title="Start 2-Minute Demo Tour"
         >
-          <Award size={13} />
-          <span>Demo Tour</span>
+          <Award size={12} />
+          <span className="hidden sm:inline">TOUR</span>
         </button>
 
         {/* Attack Simulation */}
         <button
           onClick={handleSimulate}
           disabled={isSimulating}
-          className="lift flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:border-signal/70 hover:shadow-[var(--glow-signal)] active:scale-95 transition-all"
+          className="flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10.5px] text-[#7D8590] hover:text-[#FF9F1C] hover:border-[#FF9F1C]/40 active:scale-95 transition-all"
+          title="Simulate Inbound Ransomware Attack"
         >
-          {isSimulating ? <Loader2 size={13} className="animate-spin text-signal" /> : <Zap size={13} className="text-signal" />}
-          <span>Simulate</span>
+          {isSimulating ? <Loader2 size={12} className="animate-spin text-[#FF9F1C]" /> : <Zap size={12} className="text-[#FF9F1C]" />}
+          <span className="hidden sm:inline">SIMULATE</span>
         </button>
 
         {/* Upload Logs */}
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="lift animate-breathe flex items-center gap-1.5 rounded-md bg-[image:var(--gradient-signal)] px-3 py-1.5 text-[11px] font-semibold text-primary-foreground active:scale-95 transition-all"
+          className="flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10.5px] text-[#7D8590] hover:text-[#E6EDF3] hover:border-[#39FF88]/40 active:scale-95 transition-all"
+          title="Ingest Forensic Bitcoin Logs"
         >
-          {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-          <span>Upload</span>
+          {isUploading ? <Loader2 size={12} className="animate-spin text-[#39FF88]" /> : <Upload size={12} />}
+          <span className="hidden sm:inline">INGEST</span>
         </button>
 
         {/* Section 65B PDF */}
         <button
           onClick={handleDownloadPdf}
-          className="lift flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all"
+          className="flex items-center gap-1 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-2.5 py-1 text-[10.5px] font-bold text-[#39FF88] hover:bg-[#39FF88]/25 active:scale-95 transition-all"
+          title="Export Section 65B Forensic Evidence Dossier"
         >
-          <FileText size={13} />
-          <span>Sec 65B</span>
+          <FileText size={12} />
+          <span>SEC 65B</span>
         </button>
-
-        {/* LEA Agency Badge */}
-        <div className="grid h-8 w-8 place-items-center rounded-full border border-signal/40 bg-panel-2 font-mono text-[10.5px] font-bold tracking-wide text-signal">
-          CBI
-        </div>
       </div>
     </header>
   );

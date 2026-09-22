@@ -665,6 +665,23 @@ def get_whitelist():
     return whitelist.whitelisted_addresses
 
 
+@app.post("/api/reset")
+def reset_session():
+    """Resets all session data, clears injected ransomware simulations, and re-loads baseline dataset."""
+    JOBS.clear()
+    REVIEW_LOGS.clear()
+    sample_path = os.path.join(os.path.dirname(__file__), "data", "sample_dataset.csv")
+    if os.path.exists(sample_path):
+        try:
+            df = pd.read_csv(sample_path)
+            job_id = process_dataframe(df, filename="sample_dataset.csv", sha256_hash="C78921DF883910A49B89104E9281AC7B910481920AF89102B91823901A849201")
+            JOBS["default"] = JOBS[job_id]
+        except Exception as e:
+            print(f"[!] Reset error: {e}")
+    return {"status": "SESSION_RESET", "message": "Forensic session reset to baseline state."}
+
+
+
 @app.get("/api/stats")
 def get_global_stats():
     # BUG-5 FIX: Real counts only — no artificial floor/inflation.
@@ -694,16 +711,66 @@ def get_global_stats():
     }
 
 
+def _get_ollama_status():
+    import os as _os
+    import json as _json
+    import urllib.request as _urllib
+
+    hosts = []
+    if _os.environ.get("OLLAMA_HOST"):
+        h = _os.environ["OLLAMA_HOST"]
+        if not h.startswith("http"):
+            h = f"http://{h}"
+        hosts.append(h)
+    hosts.extend([
+        "http://localhost:11434",
+        "http://127.0.0.1:11434",
+        "http://host.docker.internal:11434"
+    ])
+
+    for host in hosts:
+        try:
+            url = f"{host.rstrip('/')}/api/tags"
+            req = _urllib.Request(url, method="GET")
+            with _urllib.urlopen(req, timeout=0.8) as resp:
+                data = _json.loads(resp.read().decode())
+                models = [m.get("name", "") for m in data.get("models", [])]
+                return {
+                    "online": True,
+                    "host": host,
+                    "models": models,
+                    "active_model": models[0] if models else "none"
+                }
+        except Exception:
+            continue
+
+    return {
+        "online": False,
+        "host": None,
+        "models": [],
+        "active_model": "sato_nlg_engine"
+    }
+
+
+@app.get("/api/ai/ollama_status")
+async def get_ollama_status():
+    """Returns real-time connection status and installed models for local Ollama instance."""
+    return _get_ollama_status()
+
+
 @app.post("/api/ai/chat")
 async def ai_chat(request: dict):
     """
     Offline AI forensic copilot endpoint.
-    Primary: Ollama local LLM (llama3.2, mistral, phi3, etc.)
+    Primary: Ollama local LLM (llama3.2, mistral, phi3, deepseek, etc.)
     Fallback: Context-aware forensic NLG engine using real live job data.
     """
     import json as _json
+    import urllib.request as _urllib
+
     user_message = request.get("message", "")
     job_id = request.get("job_id", "default")
+    requested_model = request.get("model")
 
     job = JOBS.get(job_id) or JOBS.get("default")
 
@@ -764,42 +831,36 @@ TECHNICAL CONTEXT:
 
 Respond in a professional forensic intelligence briefing style. Be concise, factual, and include relevant legal citations where applicable. Always end with an actionable investigator recommendation. Keep response under 350 words."""
 
-    # ── Try Ollama first with fast pre-flight probe ─────────────────────────
-    try:
-        import urllib.request as _urllib
-        # Fast probe: check if Ollama server is alive in < 0.6 seconds
-        probe_req = _urllib.Request("http://localhost:11434/api/tags", method="GET")
-        with _urllib.urlopen(probe_req, timeout=0.6) as probe_resp:
-            probe_data = _json.loads(probe_resp.read().decode())
-            available_models = [m.get("name", "") for m in probe_data.get("models", [])]
+    # ── Try Ollama first with multi-host probe ─────────────────────────
+    ollama_stat = _get_ollama_status()
+    if ollama_stat["online"] and ollama_stat["models"]:
+        available_models = ollama_stat["models"]
+        preferred = ["llama3.2:1b", "llama3.2", "phi3:mini", "phi3", "mistral", "gemma:2b", "deepseek-r1:1.5b", "llama2"]
+        chosen_model = requested_model if (requested_model and requested_model in available_models) else next((m for m in preferred if any(m in am for am in available_models)), available_models[0])
 
-        if available_models:
-            # Pick best available or preferred model
-            preferred = ["llama3.2:1b", "llama3.2", "phi3:mini", "phi3", "mistral", "llama2"]
-            chosen_model = next((m for m in preferred if any(m in am for am in available_models)), available_models[0])
+        payload = _json.dumps({
+            "model": chosen_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            "stream": False,
+            "options": {"temperature": 0.3, "num_predict": 350}
+        }).encode()
 
-            payload = _json.dumps({
-                "model": chosen_model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                "stream": False,
-                "options": {"temperature": 0.3, "num_predict": 350}
-            }).encode()
-
-            req = _urllib.Request(
-                "http://localhost:11434/api/chat",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with _urllib.urlopen(req, timeout=12) as r:
+        req = _urllib.Request(
+            f"{ollama_stat['host'].rstrip('/')}/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        try:
+            with _urllib.urlopen(req, timeout=15) as r:
                 result = _json.loads(r.read().decode())
                 response_text = result["message"]["content"]
                 return {"response": response_text, "source": f"ollama:{chosen_model}", "offline": True}
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     # ── Context-aware offline NLG fallback ───────────────────────────────────
     response_text = _build_forensic_response(user_message, job, live_context, top_suspects_text)

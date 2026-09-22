@@ -1,324 +1,252 @@
 import { useEffect, useState, useRef } from "react";
-import { Shield, CheckCircle2, Lock, Terminal, Activity, ArrowRight, Volume2, VolumeX, FastForward, Cpu } from "lucide-react";
+import gsap from "gsap";
+import { Terminal, Lock, CheckCircle2, Shield, FastForward, Activity } from "lucide-react";
 
 interface SatoBootProps {
   onComplete: () => void;
 }
 
-// Sophisticated, subtle acoustic feedback synthesized via Web Audio API
-class SatoAcousticEngine {
-  private ctx: AudioContext | null = null;
-  public isMuted: boolean = false;
-
-  private initCtx() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
-  }
-
-  playTactileClick() {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(1400, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.03);
-
-      gain.gain.setValueAtTime(0.015, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.04);
-    } catch {}
-  }
-
-  playKernelEngage() {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime;
-
-      // Warm acoustic sub-bass pulse (55Hz root -> 110Hz harmonic)
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(55, now);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
-
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.04, now + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.55);
-    } catch {}
-  }
-}
-
-const audio = new SatoAcousticEngine();
-
-interface DiagnosticEntry {
-  tag: string;
-  latency: string;
-  subsystem: string;
-  status: "OK" | "LOCKED" | "VERIFIED" | "ARMED";
-  detail: string;
-}
-
-const DIAGNOSTICS: DiagnosticEntry[] = [
-  { tag: "0.012s", latency: "0.012s", subsystem: "AIRGAP_ENCLAVE_ISOLATION", status: "VERIFIED", detail: "Zero cloud egress verified • 127.0.0.1 loopback" },
-  { tag: "0.048s", latency: "0.036s", subsystem: "SHA256_CUSTODY_INTEGRITY", status: "LOCKED", detail: "C78921DF883910A49B89104E... validated" },
-  { tag: "0.104s", latency: "0.056s", subsystem: "ISOLATION_FOREST_V2_CORE", status: "OK", detail: "14 temporal/topological feature weights loaded" },
-  { tag: "0.182s", latency: "0.078s", subsystem: "NETWORKX_LOUVAIN_RESOLVER", status: "OK", detail: "4,671 P2P TXs mapped • 7 syndicates grouped" },
-  { tag: "0.264s", latency: "0.082s", subsystem: "RBI_VDA_WHITELIST_FILTER", status: "VERIFIED", detail: "500+ hot-wallets indexed • FPR guaranteed <3.2%" },
-  { tag: "0.338s", latency: "0.074s", subsystem: "SECTION_65B_LEGAL_ENGINE", status: "ARMED", detail: "ReportLab court-admissible PDF compiler active" },
-  { tag: "0.412s", latency: "0.074s", subsystem: "STATUTORY_CRPC_NOTICE_HUB", status: "ARMED", detail: "Section 91 CrPC / BNSS 2023 requisition armed" },
+const STAGES = [
+  { id: 1, label: "AIR-GAP ENCLAVE ISOLATION & KERNEL SELF-TEST", status: "VERIFIED", latency: "0.4ms" },
+  { id: 2, label: "SEIZED TRANSACTION METADATA (14 FIELDS / 4,671 TXs)", status: "PARSED", latency: "1.2ms" },
+  { id: 3, label: "THREE-MODEL CONSENSUS GATE (ISOFOREST + GRAPH DENSITY)", status: "INITIALIZED", latency: "2.8ms" },
+  { id: 4, label: "500+ EXCHANGE HOT-WALLET WHITELIST (<3.2% FPR)", status: "MOUNTED", latency: "0.6ms" },
+  { id: 5, label: "SECTION 65B(2) INDIAN EVIDENCE ACT SHA-256 SEAL", status: "LOCKED", latency: "0.3ms" },
 ];
 
 export function SatoBootSequence({ onComplete }: SatoBootProps) {
-  const [activeStep, setActiveStep] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentStage, setCurrentStage] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [isClosing, setIsClosing] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [hexStream, setHexStream] = useState("C7 89 21 DF 88 39 10 A4 9B 89 10 4E 92 81 AC 7B");
+  const [hexStream, setHexStream] = useState("0x7F4A9B... INITIALIZING");
+  const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
-    audio.playKernelEngage();
-
-    // Random cryptographic stream ticker
+    // Generate streaming SHA-256 hex bits
     const hexChars = "0123456789ABCDEF";
-    const hexInterval = setInterval(() => {
-      let nextHex = "";
-      for (let i = 0; i < 16; i++) {
-        nextHex += hexChars.charAt(Math.floor(Math.random() * 16)) + hexChars.charAt(Math.floor(Math.random() * 16)) + " ";
-      }
-      setHexStream(nextHex.trim());
-    }, 90);
-
-    // Progress and diagnostic steps timeline
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => handleFinish(), 500);
-          return 100;
-        }
-        const next = prev + 1;
-        const targetStep = Math.min(DIAGNOSTICS.length - 1, Math.floor((next / 100) * DIAGNOSTICS.length));
-        if (targetStep !== activeStep) {
-          setActiveStep(targetStep);
-          audio.playTactileClick();
-        }
-        return next;
-      });
-    }, 24);
+      let str = "";
+      for (let i = 0; i < 64; i++) {
+        str += hexChars[Math.floor(Math.random() * hexChars.length)];
+      }
+      setHexStream(str);
+    }, 60);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setProgress(100);
+      setCurrentStage(5);
+      return;
+    }
+
+    const logMessages = [
+      "[0.002] Booting SatoshiTrace Kernel v4.2.0 (x86_64-linux-gnu / win64 air-gap)",
+      "[0.045] Verifying zero external sockets: 127.0.0.1 bound, WAN unreachable [PASS]",
+      "[0.120] Ingesting test dataset: 4,671 raw transaction hashes parsed in 1.2ms",
+      "[0.340] Computing Section 65B(2) SHA-256 integrity digest: C78921DF8839... [MATCH]",
+      "[0.650] Loading Isolation Forest anomaly scoring matrix (6 behavioral features)",
+      "[0.890] Executing Louvain community detection on bipartite transaction graph",
+      "[1.120] Partitioning 7 criminal syndicate clusters (Cluster #4 BlackRiver isolated)",
+      "[1.450] Pre-filtering 500+ Indian & global exchange hot wallets (CoinDCX, WazirX, Binance)",
+      "[1.780] Consensus Gate locked: 4 critical threat leads prioritized (<3.2% FPR validated)",
+      "[2.100] SATO OS Forensic Engine operational. Handing control to command console.",
+    ];
+
+    let logIndex = 0;
+    const logInterval = setInterval(() => {
+      if (logIndex < logMessages.length) {
+        const nextLog = logMessages[logIndex];
+        setLogs((prev) => [...prev, nextLog]);
+        logIndex++;
+
+        // Stagger stage advancement
+        if (logIndex === 2) setCurrentStage(1);
+        if (logIndex === 4) setCurrentStage(2);
+        if (logIndex === 6) setCurrentStage(3);
+        if (logIndex === 8) setCurrentStage(4);
+        if (logIndex === 10) setCurrentStage(5);
+      } else {
+        clearInterval(logInterval);
+      }
+    }, 220);
+
+    // Smooth progress counter
+    const startTime = performance.now();
+    const duration = 2400;
+
+    const animateProgress = (now: number) => {
+      const elapsed = now - startTime;
+      const pct = Math.min(100, Math.round((elapsed / duration) * 100));
+      setProgress(pct);
+      if (pct < 100) {
+        requestAnimationFrame(animateProgress);
+      }
+    };
+
+    const rafId = requestAnimationFrame(animateProgress);
 
     return () => {
-      clearInterval(hexInterval);
-      clearInterval(interval);
+      clearInterval(logInterval);
+      cancelAnimationFrame(rafId);
     };
-  }, [activeStep]);
+  }, []);
 
-  const handleFinish = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onComplete();
-    }, 500);
-  };
-
-  const toggleSound = () => {
-    audio.isMuted = !isMuted;
-    setIsMuted(!isMuted);
-  };
+  // Keyboard shortcut: ESC or Space to skip
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === " ") {
+        onComplete();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onComplete]);
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col justify-between bg-[#06080D] text-foreground font-mono select-none overflow-hidden transition-all duration-500 ${
-        isClosing ? "opacity-0 scale-[0.99] filter blur-sm pointer-events-none" : "opacity-100 scale-100"
-      }`}
-      style={{
-        backgroundImage: `
-          radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.04) 0%, transparent 65%),
-          radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.03) 0%, transparent 50%),
-          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)
-        `,
-        backgroundSize: "100% 100%, 100% 100%, 32px 32px, 32px 32px",
-      }}
+      ref={containerRef}
+      className="crt-boot-screen fixed inset-0 z-50 flex flex-col justify-between bg-[#0A0E14] p-6 text-[#E6EDF3] font-mono select-none"
     >
-      {/* Top Precision Status Bar */}
-      <header className="w-full flex items-center justify-between px-8 py-5 border-b border-white/[0.08] bg-[#090C14]/80 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="h-2 w-2 rounded-full bg-signal shadow-[0_0_8px_var(--signal)]" />
-            <span className="text-xs font-bold tracking-[0.2em] text-foreground uppercase">
-              SATO OS <span className="text-signal font-normal">// KERNEL v4.2</span>
-            </span>
-          </div>
-          <span className="text-white/20 text-xs">|</span>
-          <span className="text-[11px] text-muted-foreground tracking-wider hidden sm:inline">
-            CBI CYBER FORENSIC COMMAND ENCLAVE
+      {/* Top Telemetry Header */}
+      <div className="flex items-center justify-between border-b border-[#1C232E] pb-3 text-xs">
+        <div className="flex items-center gap-3">
+          <span className="flex h-2.5 w-2.5 items-center justify-center">
+            <span className="h-2 w-2 rounded-full bg-[#39FF88] animate-pulse" />
           </span>
+          <span className="font-bold tracking-wider text-[#39FF88]">
+            SATO OS // FORENSIC KERNEL BOOT SEQUENCE
+          </span>
+          <span className="text-[#7D8590]">|</span>
+          <span className="text-[#7D8590]">AIR-GAP CLUSTER 127.0.0.1</span>
         </div>
 
-        <div className="flex items-center gap-6 text-[11px]">
-          <div className="hidden md:flex items-center gap-4 text-muted-foreground">
-            <span>ARCH: <strong className="text-foreground font-medium">x86_64 OFFLINE</strong></span>
-            <span>CUSTODY: <strong className="text-emerald-400 font-medium">SHA-256 LOCKED</strong></span>
-            <span>CONSENSUS: <strong className="text-signal font-medium">3-MODEL GATE</strong></span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleSound}
-              className="flex items-center gap-1.5 rounded border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10.5px] text-muted-foreground hover:text-foreground hover:border-white/20 transition-all"
-              title={isMuted ? "Unmute Audio" : "Mute Audio"}
-            >
-              {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-              <span>{isMuted ? "MUTE" : "AUDIO"}</span>
-            </button>
-
-            <button
-              onClick={handleFinish}
-              className="flex items-center gap-1.5 rounded border border-signal/40 bg-signal/15 px-3 py-1 text-[11px] font-semibold text-signal hover:bg-signal/25 active:scale-95 transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-            >
-              <span>ENTER WORKBENCH</span>
-              <FastForward size={12} />
-            </button>
-          </div>
+        <div className="flex items-center gap-4 text-[#7D8590] text-[11px]">
+          <span>CMOS TIMESTAMP: {new Date().toISOString()}</span>
+          <button
+            onClick={onComplete}
+            className="flex items-center gap-1.5 border border-[#1C232E] bg-[#161B22] px-2.5 py-1 text-[#39FF88] hover:bg-[#1C232E] active:scale-95 transition-all text-[10.5px]"
+          >
+            <FastForward size={12} />
+            <span>[ESC] SKIP BOOT</span>
+          </button>
         </div>
-      </header>
+      </div>
 
-      {/* Main Forensic Diagnostics Container */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 max-w-5xl w-full mx-auto">
-        {/* Double-Bezel Hardware Enclosure */}
-        <div className="w-full rounded-[1.25rem] border border-white/[0.08] bg-white/[0.02] p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
-          <div className="rounded-[calc(1.25rem-0.375rem)] border border-white/[0.06] bg-[#0A0D16]/95 p-6 sm:p-8 space-y-6">
-            
-            {/* Header: Identity & Precision Caliper */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.07] pb-5">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="mono-xs rounded bg-signal/15 px-2 py-0.5 font-bold text-signal border border-signal/30">
-                    AIR-GAPPED FORENSIC INITIALIZATION
-                  </span>
-                  <span className="mono-xs text-muted-foreground">SEC 65B(2) CERTIFIED</span>
-                </div>
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
-                  SatoshiTrace Forensic Intelligence Enclave
-                </h1>
-              </div>
+      {/* Main Staged Checks & Hex Matrix */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto max-w-6xl w-full mx-auto">
+        {/* Left Column: Staged Hardware / Algorithm Tests */}
+        <div className="border border-[#1C232E] bg-[#0D1117] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#1C232E] pb-2 text-xs">
+            <span className="font-bold text-[#E6EDF3] flex items-center gap-2">
+              <Shield size={14} className="text-[#39FF88]" />
+              SYSTEM DIAGNOSTIC SUBSYSTEMS
+            </span>
+            <span className="text-[#7D8590] tabular-nums">{currentStage} / 5 COMPLETE</span>
+          </div>
 
-              {/* Minimalist Progress Meter */}
-              <div className="text-right">
-                <div className="text-2xl font-bold tracking-tighter text-foreground font-mono">
-                  {progress.toString().padStart(3, "0")}<span className="text-signal text-sm">%</span>
-                </div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  Diagnostic Integrity
-                </div>
-              </div>
-            </div>
+          <div className="space-y-3">
+            {STAGES.map((s, idx) => {
+              const isPassed = currentStage >= s.id;
+              const isCurrent = currentStage === s.id - 1;
 
-            {/* Live Cryptographic Hex Matrix Bar */}
-            <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-[#06080F] px-4 py-2.5 text-[11px]">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Lock size={13} className="text-signal" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  EVIDENTIARY HASH (SHA-256):
-                </span>
-              </div>
-              <div className="font-mono text-signal/90 font-medium tracking-widest text-[11px] truncate max-w-md">
-                {hexStream}
-              </div>
-            </div>
-
-            {/* Diagnostic Kernel Log Stream (Clean Tabular Architecture) */}
-            <div className="space-y-1.5 font-mono text-[11.5px]">
-              {DIAGNOSTICS.map((diag, index) => {
-                const isResolved = index <= activeStep;
-                const isCurrent = index === activeStep;
-
-                return (
-                  <div
-                    key={diag.subsystem}
-                    className={`flex items-center justify-between rounded-md px-3.5 py-2 transition-all duration-200 ${
-                      isCurrent
-                        ? "bg-signal/10 border border-signal/30 text-foreground"
-                        : isResolved
-                          ? "bg-white/[0.02] text-foreground/80 border border-transparent"
-                          : "opacity-25 text-muted-foreground border border-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-[10px] text-muted-foreground w-12 shrink-0">
-                        [{diag.latency}]
-                      </span>
-                      <span className="font-semibold tracking-wide truncate">
-                        {diag.subsystem}
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground truncate hidden sm:inline">
-                        — {diag.detail}
-                      </span>
+              return (
+                <div
+                  key={s.id}
+                  className={`border px-3 py-2.5 text-[11.5px] transition-colors ${
+                    isPassed
+                      ? "border-[#1C232E] bg-[#0A0E14] text-[#E6EDF3]"
+                      : isCurrent
+                        ? "border-[#39FF88]/40 bg-[#161B22] text-[#39FF88]"
+                        : "border-[#1C232E]/40 opacity-40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] text-[#7D8590]">0{s.id}</span>
+                      <span className="truncate font-semibold">{s.label}</span>
                     </div>
-
-                    <div className="shrink-0 flex items-center gap-2 pl-3">
-                      {isResolved ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
-                          <CheckCircle2 size={12} />
-                          {diag.status}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">PENDING</span>
-                      )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[10px] text-[#7D8590] tabular-nums">{s.latency}</span>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 border"
+                        style={{
+                          borderColor: isPassed ? "#39FF88" : "#1C232E",
+                          color: isPassed ? "#39FF88" : "#7D8590",
+                        }}
+                      >
+                        {isPassed ? s.status : "TESTING"}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom Linear Progress Rail */}
-            <div className="space-y-2 pt-2">
-              <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-signal to-emerald-400 transition-all duration-75 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>LOCAL KERNEL ATTACHED: 127.0.0.1:8000</span>
-                <span>ZERO CLOUD TELEMETRY • COMPLIANT WITH IT ACT 2000</span>
-              </div>
-            </div>
-
+                </div>
+              );
+            })}
           </div>
         </div>
-      </main>
 
-      {/* Footer Attestation */}
-      <footer className="w-full flex items-center justify-between px-8 py-3.5 border-t border-white/[0.06] bg-[#090C14]/60 text-[10.5px] text-muted-foreground">
-        <div>
-          Section 65B(2) Indian Evidence Act / Bharatiya Sakshya Adhiniyam, 2023 Digital Evidence Seal
+        {/* Right Column: Monospace Log Terminal */}
+        <div className="border border-[#1C232E] bg-[#0D1117] p-5 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between border-b border-[#1C232E] pb-2 text-xs">
+            <span className="font-bold text-[#E6EDF3] flex items-center gap-2">
+              <Terminal size={14} className="text-[#39FF88]" />
+              SECURE LOG STREAM // SATO-DIAG
+            </span>
+            <span className="text-[10.5px] text-[#39FF88]">● RECORDING</span>
+          </div>
+
+          <div className="h-64 overflow-y-auto space-y-1.5 text-[11px] pr-2 text-[#7D8590]">
+            {logs.map((log, idx) => (
+              <div key={idx} className="leading-relaxed">
+                <span className="text-[#39FF88]">&gt; </span>
+                <span className={log.includes("[PASS]") || log.includes("[MATCH]") ? "text-[#E6EDF3]" : "text-[#7D8590]"}>
+                  {log}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Live SHA-256 Hash Display */}
+          <div className="border-t border-[#1C232E] pt-2.5">
+            <div className="text-[9.5px] text-[#7D8590] mb-1">CRYPTO DIGEST (SHA-256 LIVE HASH):</div>
+            <div className="truncate text-[10.5px] text-[#39FF88] font-bold bg-[#0A0E14] p-1.5 border border-[#1C232E]">
+              {hexStream}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-foreground/80">
-          <span>OPERATOR CLEARANCE: LEVEL-5 INVESTIGATOR</span>
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      </div>
+
+      {/* Bottom Progress Bar & Launch Bar */}
+      <div className="border-t border-[#1C232E] pt-3 max-w-6xl w-full mx-auto">
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span className="text-[#7D8590]">INITIALIZATION PROGRESS</span>
+          <span className="text-[#39FF88] font-bold tabular-nums">{progress}%</span>
         </div>
-      </footer>
+
+        <div className="h-2 w-full bg-[#161B22] overflow-hidden border border-[#1C232E]">
+          <div
+            className="h-full bg-[#39FF88] transition-all duration-75"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[10px] text-[#7D8590]">
+            COMPLIANCE: INDIAN EVIDENCE ACT SEC 65B(2) • BNSS 2023 SEC 94
+          </span>
+          {progress >= 100 && (
+            <button
+              onClick={onComplete}
+              className="px-4 py-1.5 bg-[#39FF88] text-[#0A0E14] font-bold text-xs hover:bg-[#32e67a] active:scale-95 transition-all shadow-md animate-pulse"
+            >
+              PROCEED TO COMMAND CONSOLE →
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

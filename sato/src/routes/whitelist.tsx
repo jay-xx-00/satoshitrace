@@ -7,8 +7,10 @@ export const Route = createFileRoute("/whitelist")({
   head: () => ({
     meta: [
       { title: "Exchange Whitelist — SatoshiTrace" },
-      { name: "description", content: "Known cryptocurrency exchange and mining pool hot-wallet registry for false-positive prevention." },
-      { property: "og:title", content: "Exchange Whitelist — SatoshiTrace" },
+      {
+        name: "description",
+        content: "Known cryptocurrency exchange and mining pool hot-wallet registry for false-positive prevention.",
+      },
     ],
   }),
   component: WhitelistPage,
@@ -59,60 +61,73 @@ const WHITELIST_ENTITIES = [
   },
 ];
 
-function WhitelistPage() {
+export function WhitelistPage() {
   return (
-    <AppShell title="Exchange Whitelist Manager" breadcrumb="HOME / ENTITY REGISTRY / 500+ VERIFIED HUBS">
-      <div className="h-full overflow-y-auto p-5 space-y-5">
-        <div className="glass flex items-start justify-between p-5">
-          <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-400">
-              <ShieldCheck size={24} />
+    <AppShell title="Exchange Whitelist" breadcrumb="HQ / ENTITY REGISTRY / 500+ VERIFIED HUBS (FPR < 3.2%)">
+      <div className="h-full overflow-y-auto p-4 space-y-3 font-mono select-none">
+        {/* Whitelist Banner */}
+        <div className="flex flex-wrap items-start justify-between gap-4 rounded border border-[#1C232E] bg-[#0D1117] p-3.5">
+          <div className="flex items-start gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded border border-[#39FF88]/40 bg-[#39FF88]/10 text-[#39FF88]">
+              <ShieldCheck size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[16px] font-bold tracking-wide text-foreground">
-                  Known Entity & Exchange Hot-Wallet Registry
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  EXCHANGE HOT-WALLET REGISTRY // FALSE POSITIVE GATE
                 </h2>
-                <span className="mono-xs rounded bg-cyan-500/20 px-2 py-0.5 font-semibold text-cyan-400 ring-1 ring-cyan-500/30">
-                  500+ Pre-Tagged Hubs
+                <span className="rounded bg-[#39FF88]/15 px-2 py-0.2 text-[9px] font-bold text-[#39FF88] border border-[#39FF88]/30">
+                  500+ PRE-TAGGED HUBS
                 </span>
               </div>
-              <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+              <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#7D8590]">
                 High-volume exchanges, custodial settlement pools, and registered mining networks are excluded from false accusation scoring. This foundational layer reduces our verified false-positive rate to 3.2% while protecting innocent retail crypto users.
               </p>
             </div>
           </div>
           <button
             onClick={() => toast.info("Whitelist entity registration requires authorized supervisor PIN.")}
-            className="flex items-center gap-2 rounded-md bg-signal px-4 py-2.5 text-[12px] font-bold text-signal-foreground shadow-lg hover:bg-signal/90"
+            className="flex items-center gap-1.5 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-3 py-1.5 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
           >
-            <Plus size={15} /> Add Verified Exchange Hub
+            <Plus size={13} />
+            <span>ADD VERIFIED EXCHANGE HUB</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Entities Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {WHITELIST_ENTITIES.map((ent) => (
-            <div key={ent.name} className="glass p-4 space-y-3">
-              <div className="flex items-center justify-between">
+            <div
+              key={ent.name}
+              className="rounded border border-[#1C232E] bg-[#0D1117] p-3 space-y-2.5"
+            >
+              <div className="flex items-center justify-between pb-1.5 border-b border-[#1C232E]">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                  <h3 className="text-[14px] font-bold text-foreground">{ent.name}</h3>
+                  <CheckCircle2 size={13} className="text-[#39FF88] shrink-0" />
+                  <h3 className="text-xs font-bold text-[#E6EDF3]">{ent.name}</h3>
                 </div>
-                <span className="mono-xs rounded bg-cyan-500/15 px-2 py-0.5 font-mono text-cyan-400 font-semibold">
+                <span className="rounded bg-[#0A0E14] px-1.5 py-0.2 text-[9px] font-mono text-[#7D8590] border border-[#1C232E]">
                   {ent.category}
                 </span>
               </div>
 
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <Lock size={12} className="text-signal" /> Jurisdiction: <span className="text-foreground">{ent.jurisdiction}</span>
+              <div className="text-[10px] text-[#7D8590] flex items-center gap-1.5">
+                <Lock size={11} className="text-[#39FF88]" />
+                <span>JURISDICTION:</span>
+                <span className="text-[#E6EDF3] font-semibold">{ent.jurisdiction}</span>
               </div>
 
-              <div className="space-y-1 rounded bg-background/50 p-2.5">
-                <div className="mono-xs text-muted-foreground mb-1">Pre-Tagged Hot Wallet Addresses:</div>
+              <div className="space-y-1 rounded border border-[#1C232E] bg-[#0A0E14] p-2">
+                <div className="text-[9px] text-[#7D8590] mb-1">PRE-TAGGED HOT WALLET ADDRESSES:</div>
                 {ent.addresses.map((addr) => (
-                  <div key={addr} className="font-mono text-[10.5px] text-emerald-400 truncate flex items-center justify-between">
+                  <div
+                    key={addr}
+                    className="font-mono text-[10px] text-[#39FF88] truncate flex items-center justify-between"
+                  >
                     <span className="truncate">{addr}</span>
-                    <span className="text-[9px] text-muted-foreground ml-2">EXCLUDED</span>
+                    <span className="rounded bg-[#1C232E] px-1 py-0.2 text-[8px] text-[#7D8590] ml-2 shrink-0">
+                      EXCLUDED
+                    </span>
                   </div>
                 ))}
               </div>
@@ -123,3 +138,4 @@ function WhitelistPage() {
     </AppShell>
   );
 }
+export default WhitelistPage;

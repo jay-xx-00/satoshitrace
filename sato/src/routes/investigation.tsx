@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, ShieldAlert, Pin, Plus, FileText, CheckCircle2, Download, ExternalLink, Scale, User, Clock } from "lucide-react";
+import { Search, ShieldAlert, Pin, CheckCircle2, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
-import { generateCrpcNotice, getPdfReportUrl } from "@/lib/api";
+import { getPdfReportUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/investigation")({
   head: () => ({
     meta: [
       { title: "Investigation Workbench — SatoshiTrace" },
-      { name: "description", content: "Active forensic case workspace: correlate wallet clusters, query seized ledgers, and compile court-ready lead packets." },
-      { property: "og:title", content: "Investigation Workbench — SatoshiTrace" },
+      {
+        name: "description",
+        content: "Active forensic case workspace: correlate wallet clusters, query seized ledgers, and compile court-ready lead packets.",
+      },
     ],
   }),
   component: InvestigationPage,
@@ -56,7 +58,7 @@ const DEFAULT_PINNED: PinnedWallet[] = [
   },
 ];
 
-function InvestigationPage() {
+export function InvestigationPage() {
   const [query, setQuery] = useState("");
   const [pinned, setPinned] = useState<PinnedWallet[]>(DEFAULT_PINNED);
   const [notes, setNotes] = useState(
@@ -68,7 +70,6 @@ function InvestigationPage() {
     e.preventDefault();
     if (!query.trim()) return;
     const q = query.trim();
-    // Simulate lookup across 4,671 ingested ledger records
     if (q.startsWith("bc1") || q.startsWith("1") || q.startsWith("3")) {
       setSearchResult({
         identifier: q,
@@ -123,23 +124,25 @@ function InvestigationPage() {
   };
 
   return (
-    <AppShell title="Investigation Workbench" breadcrumb="HOME / ACTIVE CASE FILE / CBI-2026-0471">
-      <div className="h-full overflow-y-auto p-5 space-y-4">
+    <AppShell title="Investigation Workbench" breadcrumb="HQ / ACTIVE CASE DOSSIER / CBI-2026-0471">
+      <div className="h-full overflow-y-auto p-4 space-y-3 font-mono select-none">
         {/* Case Header Banner */}
-        <div className="glass flex items-center justify-between p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-[#1C232E] bg-[#0D1117] p-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-signal/15 text-signal font-bold font-mono">
+            <div className="grid h-8 w-8 place-items-center rounded border border-[#1C232E] bg-[#0A0E14] text-xs font-bold text-[#39FF88]">
               CBI
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-bold text-foreground">Operation BlackRiver — Case CBI-2026-0471</h2>
-                <span className="mono-xs rounded bg-critical/20 px-2 py-0.5 text-critical font-bold">
-                  ACTIVE TASKFORCE PRIORITY
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  OPERATION BLACKRIVER — CASE CBI-2026-0471
+                </h2>
+                <span className="rounded bg-[#FF3B3B]/15 px-2 py-0.2 text-[9px] font-bold text-[#FF3B3B] border border-[#FF3B3B]/30">
+                  PRIORITY TASKFORCE
                 </span>
               </div>
-              <p className="mono-xs text-muted-foreground mt-0.5">
-                Lead Examiner: Cybercrime Taskforce Officer #8412 • Section 65B Electronic Evidence Active
+              <p className="text-[10px] text-[#7D8590] mt-0.5">
+                EXAMINER: #8412 • SECTION 65B CERTIFIED • OFF-RAMP LIQUIDATION PROBE
               </p>
             </div>
           </div>
@@ -147,84 +150,87 @@ function InvestigationPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => toast.success("Case notes auto-saved to encrypted local SQLite ledger.")}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel-2 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-signal"
+              className="flex items-center gap-1.5 rounded border border-[#1C232E] bg-[#0A0E14] px-2.5 py-1 text-xs text-[#7D8590] hover:text-[#E6EDF3] transition-all"
             >
-              <CheckCircle2 size={13} className="text-emerald-400" /> Save Notes
+              <CheckCircle2 size={12} className="text-[#39FF88]" />
+              <span>SAVE NOTES</span>
             </button>
             <button
               onClick={handleExportCase}
-              className="flex items-center gap-1.5 rounded-md bg-signal px-3.5 py-1.5 text-xs font-bold text-signal-foreground hover:bg-signal/90"
+              className="flex items-center gap-1.5 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-3 py-1 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
             >
-              <Download size={13} /> Export Case Bundle
+              <Download size={12} />
+              <span>EXPORT CASE BUNDLE</span>
             </button>
           </div>
         </div>
 
         {/* Search & Identifier Query Bar */}
-        <div className="glass p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="mono-xs font-bold text-signal uppercase tracking-wider">
-              Cross-Ledger Identifier Query & Correlation Engine
+        <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3 space-y-2">
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="font-bold text-[#39FF88] uppercase tracking-wider">
+              CROSS-LEDGER IDENTIFIER QUERY & CORRELATION ENGINE
             </span>
-            <span className="mono-xs text-muted-foreground">Indexed 4,671 Seized Transactions</span>
+            <span className="text-[#7D8590] tabular-nums">4,671 TRANSACTIONS INDEXED</span>
           </div>
 
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7D8590]" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Query any seized identifier: wallet address (bc1q...), TXID hash, IP address, ASN, or country..."
-                className="h-10 w-full rounded-md border border-input bg-background/80 pl-10 pr-4 font-mono text-xs text-foreground outline-none focus:border-signal"
+                placeholder="Query any seized identifier: wallet address (bc1q...), TXID hash, IP address, ASN..."
+                className="h-8 w-full rounded border border-[#1C232E] bg-[#0A0E14] pl-9 pr-3 font-mono text-[11px] text-[#E6EDF3] outline-none placeholder:text-[#7D8590] focus:border-[#39FF88]/50"
               />
             </div>
             <button
               type="submit"
-              className="rounded-md bg-signal px-5 text-xs font-bold text-signal-foreground hover:bg-signal/90"
+              className="rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-4 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
             >
-              Correlate
+              CORRELATE
             </button>
           </form>
 
           {/* Search Result Card */}
           {searchResult && (
-            <div className="mt-3 rounded-lg border border-signal/40 bg-signal/5 p-4 space-y-3 animate-fade-in">
+            <div className="mt-2 rounded border border-[#1C232E] bg-[#0A0E14] p-3 space-y-2 animate-rise">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldAlert size={16} className="text-critical" />
-                  <span className="font-mono text-xs font-bold text-foreground truncate max-w-xl">
+                  <ShieldAlert size={14} className="text-[#FF3B3B]" />
+                  <span className="font-mono text-xs font-bold text-[#E6EDF3] truncate max-w-xl">
                     {searchResult.identifier}
                   </span>
-                  <span className="mono-xs rounded bg-critical/20 px-2 py-0.5 text-critical font-bold">
+                  <span className="rounded bg-[#FF3B3B]/15 px-1.5 py-0.2 text-[9px] font-bold text-[#FF3B3B] border border-[#FF3B3B]/30">
                     {searchResult.risk}
                   </span>
                 </div>
                 <button
                   onClick={handlePinCurrent}
-                  className="flex items-center gap-1 rounded bg-signal/20 px-2.5 py-1 text-xs font-semibold text-signal hover:bg-signal/30"
+                  className="flex items-center gap-1 rounded bg-[#39FF88]/15 px-2 py-0.5 text-[10px] font-semibold text-[#39FF88] border border-[#39FF88]/30 hover:bg-[#39FF88]/25"
                 >
-                  <Pin size={12} /> Pin to Case File
+                  <Pin size={11} />
+                  <span>PIN TO CASE FILE</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-4 gap-3 font-mono text-[11px]">
-                <div className="rounded bg-background/60 p-2 border border-border/40">
-                  <div className="text-[10px] text-muted-foreground">Type:</div>
-                  <div className="font-bold text-foreground">{searchResult.type}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10.5px]">
+                <div className="rounded bg-[#0D1117] p-2 border border-[#1C232E]">
+                  <div className="text-[9px] text-[#7D8590]">TYPE:</div>
+                  <div className="font-bold text-[#E6EDF3]">{searchResult.type}</div>
                 </div>
-                <div className="rounded bg-background/60 p-2 border border-border/40">
-                  <div className="text-[10px] text-muted-foreground">Volume Moved:</div>
-                  <div className="font-bold text-critical">{searchResult.totalBtc}</div>
+                <div className="rounded bg-[#0D1117] p-2 border border-[#1C232E]">
+                  <div className="text-[9px] text-[#7D8590]">VOLUME MOVED:</div>
+                  <div className="font-bold text-[#FF3B3B] tabular-nums">{searchResult.totalBtc}</div>
                 </div>
-                <div className="rounded bg-background/60 p-2 border border-border/40">
-                  <div className="text-[10px] text-muted-foreground">Routing Origin:</div>
-                  <div className="font-bold text-foreground">{searchResult.asn}</div>
+                <div className="rounded bg-[#0D1117] p-2 border border-[#1C232E]">
+                  <div className="text-[9px] text-[#7D8590]">ROUTING ORIGIN:</div>
+                  <div className="font-bold text-[#E6EDF3] truncate">{searchResult.asn}</div>
                 </div>
-                <div className="rounded bg-background/60 p-2 border border-border/40">
-                  <div className="text-[10px] text-muted-foreground">Syndicate:</div>
-                  <div className="font-bold text-signal">{searchResult.cluster}</div>
+                <div className="rounded bg-[#0D1117] p-2 border border-[#1C232E]">
+                  <div className="text-[9px] text-[#7D8590]">SYNDICATE CLUSTER:</div>
+                  <div className="font-bold text-[#FF9F1C] truncate">{searchResult.cluster}</div>
                 </div>
               </div>
             </div>
@@ -232,49 +238,49 @@ function InvestigationPage() {
         </div>
 
         {/* 2-Column Split: Pinned Suspects & Case Notes */}
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           {/* Pinned Suspects (3 cols) */}
-          <div className="glass col-span-3 p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 space-y-2 lg:col-span-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1C232E]">
               <div className="flex items-center gap-2">
-                <Pin size={15} className="text-signal" />
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Pinned Target Entities ({pinned.length})
+                <Pin size={13} className="text-[#39FF88]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  PINNED TARGET ENTITIES ({pinned.length})
                 </h3>
               </div>
-              <span className="mono-xs text-muted-foreground">Court Exhibit Queue</span>
+              <span className="text-[10px] text-[#7D8590]">COURT EXHIBIT QUEUE</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {pinned.map((p, idx) => (
                 <div
                   key={`${p.address}_${idx}`}
-                  className="rounded-lg border border-border/60 bg-background/40 p-3 space-y-2 hover:border-signal/50 transition-colors"
+                  className="rounded border border-[#1C232E] bg-[#0A0E14] p-2.5 space-y-1.5 hover:border-[#39FF88]/40 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-xs text-foreground">{p.label}</span>
-                      <span className="mono-xs text-muted-foreground ml-2">({p.role})</span>
+                      <span className="font-bold text-xs text-[#E6EDF3]">{p.label}</span>
+                      <span className="text-[10px] text-[#7D8590] ml-2">({p.role})</span>
                     </div>
                     <span
-                      className={`mono-xs rounded px-1.5 py-0.5 font-bold ${
+                      className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
                         p.risk === "CRITICAL"
-                          ? "bg-critical/20 text-critical"
-                          : "bg-signal/20 text-signal"
+                          ? "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/30"
+                          : "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/30"
                       }`}
                     >
                       {p.risk}
                     </span>
                   </div>
 
-                  <div className="font-mono text-[11px] text-muted-foreground break-all bg-panel/60 p-1.5 rounded border border-border/40">
+                  <div className="font-mono text-[10.5px] text-[#7D8590] break-all bg-[#0D1117] p-1.5 rounded border border-[#1C232E]">
                     {p.address}
                   </div>
 
-                  <div className="flex items-center justify-between mono-xs text-muted-foreground pt-1 border-t border-border/30">
-                    <span>Volume: <strong className="text-foreground">{p.volume}</strong></span>
-                    <span>Tactic: <strong className="text-foreground">{p.tactics}</strong></span>
-                    <span>Pinned: {p.pinnedAt}</span>
+                  <div className="flex items-center justify-between text-[9.5px] text-[#7D8590] pt-1 border-t border-[#1C232E]">
+                    <span>VOLUME: <strong className="text-[#E6EDF3] tabular-nums">{p.volume}</strong></span>
+                    <span>TACTIC: <strong className="text-[#E6EDF3]">{p.tactics}</strong></span>
+                    <span>PINNED: <strong className="text-[#7D8590] tabular-nums">{p.pinnedAt}</strong></span>
                   </div>
                 </div>
               ))}
@@ -282,36 +288,34 @@ function InvestigationPage() {
           </div>
 
           {/* Examiner Notes Notebook (2 cols) */}
-          <div className="glass col-span-2 p-4 flex flex-col justify-between space-y-3">
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 flex flex-col justify-between space-y-2 lg:col-span-2">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText size={15} className="text-signal" />
-                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Analyst Case Notes
-                  </h3>
-                </div>
-                <span className="mono-xs text-emerald-400 font-semibold">● Auto-Saved</span>
+              <div className="flex items-center justify-between pb-2 border-b border-[#1C232E]">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  EXAMINER COURT NARRATIVE
+                </h3>
+                <span className="text-[10px] text-[#39FF88] font-semibold">● AUTO-SAVED</span>
               </div>
 
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="h-72 w-full rounded-lg border border-input bg-background/70 p-3 font-mono text-[11px] text-foreground outline-none focus:border-signal resize-none leading-relaxed"
-                placeholder="Record investigation observations, suspect correlations, and court narrative..."
+                className="mt-2 h-72 w-full rounded border border-[#1C232E] bg-[#0A0E14] p-2.5 font-mono text-[11px] text-[#E6EDF3] outline-none focus:border-[#39FF88]/50 resize-none leading-relaxed"
+                placeholder="Record forensic observations, evidence chain details, and court testimony narrative..."
               />
             </div>
 
-            <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-              <span className="mono-xs text-muted-foreground">Section 65B(2) Evidentiary Record</span>
+            <div className="pt-2 border-t border-[#1C232E] flex items-center justify-between text-[10px]">
+              <span className="text-[#7D8590]">SECTION 65B(2) COMPLIANT RECORD</span>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(notes);
                   toast.success("Notes copied to clipboard!");
                 }}
-                className="text-xs font-semibold text-signal hover:underline"
+                className="flex items-center gap-1 text-[#39FF88] hover:underline"
               >
-                Copy Notes
+                <Copy size={11} />
+                <span>COPY NOTES</span>
               </button>
             </div>
           </div>
@@ -320,3 +324,4 @@ function InvestigationPage() {
     </AppShell>
   );
 }
+export default InvestigationPage;

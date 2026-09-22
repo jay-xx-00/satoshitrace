@@ -11,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { aiChat, API_BASE } from "@/lib/api";
+import { aiChat, API_BASE, fetchOllamaStatus, OllamaStatus } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -51,6 +51,8 @@ export function SatoshiCopilot() {
   const [isThinking, setIsThinking] = useState(false);
   const [aiSource, setAiSource] = useState<"ollama" | "nlg" | "unknown">("unknown");
   const [backendOnline, setBackendOnline] = useState(false);
+  const [ollamaInfo, setOllamaInfo] = useState<OllamaStatus>({ online: false, host: null, models: [], active_model: "sato_nlg_engine" });
+  const [selectedModel, setSelectedModel] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -59,7 +61,19 @@ export function SatoshiCopilot() {
     fetch(`${API_BASE}/health`)
       .then((r) => r.ok && setBackendOnline(true))
       .catch(() => setBackendOnline(false));
-  }, []);
+
+    const pollOllama = () => {
+      fetchOllamaStatus().then((info) => {
+        setOllamaInfo(info);
+        if (info.online && info.models.length > 0 && !selectedModel) {
+          setSelectedModel(info.active_model);
+        }
+      }).catch(() => {});
+    };
+    pollOllama();
+    const interval = setInterval(pollOllama, 8000);
+    return () => clearInterval(interval);
+  }, [selectedModel]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -139,7 +153,7 @@ export function SatoshiCopilot() {
       ]);
 
       try {
-        const res = await aiChat(query);
+        const res = await aiChat(query, "default", selectedModel);
         const responseText = res.response;
         const src = res.source?.startsWith("ollama") ? "ollama" : "nlg";
         setAiSource(src);
@@ -195,23 +209,23 @@ export function SatoshiCopilot() {
               description: "Offline intelligence engine ready.",
             });
           }}
-          className="group relative flex items-center gap-2.5 rounded-full border border-signal/40 bg-[#0B0E17]/90 px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-md hover:border-signal hover:shadow-[0_0_20px_rgba(245,158,11,0.25)] active:scale-95 transition-all"
+          className="group relative flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-2 shadow-xl backdrop-blur-md hover:border-[#39FF88]/50 active:scale-95 transition-all"
         >
-          <div className="relative grid h-7 w-7 place-items-center rounded-full bg-signal/15 border border-signal/40 text-signal">
-            <Bot size={15} />
+          <div className="relative grid h-6 w-6 place-items-center rounded bg-[#0A0E14] border border-[#1C232E] text-[#39FF88]">
+            <Bot size={13} />
             <span
-              className={`absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ${
-                backendOnline ? "bg-emerald-400 animate-ping" : "bg-red-500/70"
+              className={`absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ${
+                backendOnline ? "bg-[#39FF88] animate-ping" : "bg-[#FF3B3B]/70"
               }`}
             />
           </div>
           <div className="text-left">
-            <div className="text-[11.5px] font-bold text-foreground group-hover:text-signal flex items-center gap-1.5 transition-colors">
-              <span>SATO AI COPILOT</span>
-              <Sparkles size={11} className="text-signal" />
+            <div className="text-[11px] font-bold text-[#E6EDF3] group-hover:text-[#39FF88] flex items-center gap-1.5 transition-colors">
+              <span>SATO COPILOT</span>
+              <Sparkles size={10} className="text-[#39FF88]" />
             </div>
-            <div className="text-[9px] text-muted-foreground">
-              {backendOnline ? "Offline AI Engine Ready" : "Start backend to activate"}
+            <div className="text-[9px] text-[#7D8590]">
+              {backendOnline ? "AIR-GAPPED AGENT" : "127.0.0.1 READY"}
             </div>
           </div>
         </button>
@@ -219,33 +233,33 @@ export function SatoshiCopilot() {
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="flex flex-col w-[400px] sm:w-[460px] h-[580px] rounded-xl border border-white/[0.1] bg-[#0A0D16]/97 shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-rise">
+        <div className="flex flex-col w-[380px] sm:w-[440px] h-[540px] rounded border border-[#1C232E] bg-[#0D1117] shadow-2xl overflow-hidden animate-rise">
           {/* Header */}
-          <div className="flex items-center justify-between p-3.5 border-b border-white/[0.08] bg-black/40 shrink-0">
+          <div className="flex items-center justify-between p-3 border-b border-[#1C232E] bg-[#0A0E14] shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="grid h-8 w-8 place-items-center rounded-lg border border-signal/40 bg-signal/10 text-signal">
-                <Bot size={16} />
+              <div className="grid h-7 w-7 place-items-center rounded border border-[#1C232E] bg-[#0D1117] text-[#39FF88]">
+                <Bot size={14} />
               </div>
               <div>
-                <div className="text-[11px] font-bold text-foreground tracking-wider flex items-center gap-2">
+                <div className="text-[11px] font-bold text-[#E6EDF3] tracking-wider flex items-center gap-2">
                   <span>SATO AI // AGENT v4.2</span>
-                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[8px] text-emerald-400 font-semibold border border-emerald-500/30">
+                  <span className="rounded bg-[#39FF88]/15 px-1.5 py-0.2 text-[8px] text-[#39FF88] font-semibold border border-[#39FF88]/30">
                     AIR-GAPPED
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[9px] text-muted-foreground mt-0.5">
+                <div className="flex items-center gap-2 text-[9px] text-[#7D8590] mt-0.5">
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${backendOnline ? "bg-emerald-400" : "bg-red-500"}`}
+                    className={`h-1.5 w-1.5 rounded-full ${backendOnline ? (ollamaInfo.online ? "bg-[#39FF88]" : "bg-[#39FF88]") : "bg-[#FF3B3B]"}`}
                   />
                   <span>
                     {backendOnline
-                      ? aiSource === "ollama"
-                        ? "Ollama LLM Active"
-                        : "SATO NLG Engine"
+                      ? ollamaInfo.online
+                        ? `Ollama: ${selectedModel || ollamaInfo.active_model}`
+                        : "SATO Offline NLG Engine"
                       : "Backend Offline"}
                   </span>
                   {backendOnline && (
-                    <span className="text-muted-foreground/50">• 127.0.0.1:8000</span>
+                    <span className="text-[#7D8590]/50">• 127.0.0.1:8000</span>
                   )}
                 </div>
               </div>
@@ -254,30 +268,30 @@ export function SatoshiCopilot() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
-                className={`rounded p-1.5 transition-colors ${
-                  voiceEnabled ? "bg-signal/20 text-signal" : "text-muted-foreground hover:text-foreground"
+                className={`rounded p-1 transition-colors ${
+                  voiceEnabled ? "bg-[#39FF88]/20 text-[#39FF88]" : "text-[#7D8590] hover:text-[#E6EDF3]"
                 }`}
                 title={voiceEnabled ? "Mute Voice" : "Enable TTS"}
               >
-                {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             </div>
           </div>
 
           {/* Quick chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto p-2.5 border-b border-white/[0.06] bg-black/20 shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto p-2 border-b border-[#1C232E] bg-[#0A0E14] shrink-0">
             {QUICK_CHIPS.map((chip) => (
               <button
                 key={chip.query}
                 onClick={() => handleSend(chip.query)}
                 disabled={isThinking}
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[9px] text-muted-foreground hover:border-signal/50 hover:text-signal hover:bg-signal/10 disabled:opacity-40 transition-all"
+                className="shrink-0 rounded border border-[#1C232E] bg-[#0D1117] px-2 py-0.5 text-[9px] text-[#7D8590] hover:border-[#39FF88]/40 hover:text-[#39FF88] disabled:opacity-40 transition-all"
               >
                 {chip.label}
               </button>
@@ -285,35 +299,35 @@ export function SatoshiCopilot() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-[11px] leading-relaxed">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 text-[11px] leading-relaxed">
             {messages.map((m) => (
               <div
                 key={m.id}
                 className={`flex flex-col ${m.sender === "sato" ? "items-start" : "items-end"}`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[8.5px] text-muted-foreground">
+                  <span className="text-[8.5px] text-[#7D8590]">
                     {m.sender === "sato" ? "SATO FORENSIC AGENT" : "EXAMINER"} • {m.timestamp}
                   </span>
                   {m.sender === "sato" && sourceLabel(m.source)}
                 </div>
                 <div
-                  className={`rounded-lg p-3 max-w-[94%] whitespace-pre-wrap ${
+                  className={`rounded p-2.5 max-w-[94%] whitespace-pre-wrap ${
                     m.sender === "sato"
-                      ? "border border-white/[0.08] bg-[#0E121E] text-foreground/90 shadow-sm"
-                      : "border border-signal/40 bg-signal/10 text-foreground"
+                      ? "border border-[#1C232E] bg-[#0A0E14] text-[#E6EDF3]"
+                      : "border border-[#39FF88]/40 bg-[#39FF88]/10 text-[#E6EDF3]"
                   }`}
                 >
                   {m.source === "loading" ? (
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 size={12} className="animate-spin text-signal" />
+                    <span className="flex items-center gap-2 text-[#7D8590]">
+                      <Loader2 size={12} className="animate-spin text-[#39FF88]" />
                       <span className="animate-pulse">Analyzing forensic database...</span>
                     </span>
                   ) : (
                     <>
                       {m.displayText}
                       {m.isStreaming && (
-                        <span className="inline-block w-[2px] h-[12px] bg-signal ml-0.5 animate-pulse" />
+                        <span className="inline-block w-[2px] h-[12px] bg-[#39FF88] ml-0.5 animate-pulse" />
                       )}
                     </>
                   )}
@@ -329,7 +343,7 @@ export function SatoshiCopilot() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 border-t border-white/[0.08] bg-black/40 flex gap-2 shrink-0"
+            className="p-2.5 border-t border-[#1C232E] bg-[#0A0E14] flex gap-2 shrink-0"
           >
             <input
               ref={inputRef}
@@ -338,12 +352,12 @@ export function SatoshiCopilot() {
               onChange={(e) => setInput(e.target.value)}
               disabled={isThinking}
               placeholder="Ask about threats, tactics, CrPC notices, SHAP..."
-              className="flex-1 rounded-md border border-white/10 bg-black/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-signal disabled:opacity-50 transition-colors"
+              className="flex-1 rounded border border-[#1C232E] bg-[#0D1117] px-2.5 py-1.5 text-xs text-[#E6EDF3] placeholder:text-[#7D8590] outline-none focus:border-[#39FF88]/50 disabled:opacity-50 transition-colors"
             />
             <button
               type="submit"
               disabled={isThinking || !input.trim()}
-              className="rounded-md bg-signal px-3.5 py-2 text-signal-foreground font-bold hover:bg-signal/90 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+              className="rounded bg-[#39FF88]/20 border border-[#39FF88]/40 px-3 py-1.5 text-[#39FF88] font-bold hover:bg-[#39FF88]/30 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
             >
               {isThinking ? (
                 <Loader2 size={13} className="animate-spin" />

@@ -11,4 +11,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./satoshitrace/backend/data:/app/satoshitrace/backend/data
+      - ./satoshitrace:/app/satoshitrace
+
+

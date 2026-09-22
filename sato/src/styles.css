@@ -5,9 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * SatoshiTrace design system — dark defense/intelligence console.
- * Palette: deep graphite base, amber signal accent, cyan data accent,
- * alert red. All colors in oklch.
+ * SatoshiTrace Classified Defense & Intelligence Design System
+ * Aesthetic: Security Operations Center (SOC), Bloomberg Terminal, fsociety.
+ * Precise, monospaced, low-noise, high information density.
+ * NO generic SaaS gradients, NO purple/blue blobs, NO glassmorphism.
  */
 
 @theme inline {
@@ -37,288 +38,259 @@
   --color-ring: var(--ring);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);
-  --color-signal: var(--signal);
-  --color-signal-foreground: var(--signal-foreground);
-  --color-data: var(--data);
-  --color-success: var(--success);
-  --color-warn: var(--warn);
-  --color-critical: var(--critical);
-  --color-grid: var(--grid);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-terminal: var(--terminal);
+  --color-tier-red: var(--tier-red);
+  --color-tier-orange: var(--tier-orange);
+  --color-tier-yellow: var(--tier-yellow);
+  --color-tier-green: var(--tier-green);
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", Consolas, Menlo, monospace;
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.25rem; /* Precise low radius, no heavy rounded bubbles */
 
-  --background: oklch(0.16 0.008 250);
-  --foreground: oklch(0.94 0.005 250);
+  /* Dark Command Center Base */
+  --background: #0A0E14;
+  --panel: #0D1117;
+  --panel-2: #131820;
+  --card: #0D1117;
+  --card-foreground: #E6EDF3;
+  --popover: #0D1117;
+  --popover-foreground: #E6EDF3;
 
-  --panel: oklch(0.203 0.009 250);
-  --panel-2: oklch(0.24 0.01 250);
+  /* Primary text: cool off-white */
+  --foreground: #E6EDF3;
+  --muted: #161B22;
+  --muted-foreground: #7D8590;
 
-  --card: oklch(0.21 0.009 250);
-  --card-foreground: oklch(0.94 0.005 250);
-  --popover: oklch(0.21 0.009 250);
-  --popover-foreground: oklch(0.94 0.005 250);
+  /* Accent: single hero terminal green used strictly for active states, indicators, cursors */
+  --terminal: #39FF88;
+  --primary: #39FF88;
+  --primary-foreground: #0A0E14;
+  --secondary: #161B22;
+  --secondary-foreground: #E6EDF3;
+  --accent: #161B22;
+  --accent-foreground: #E6EDF3;
+  --destructive: #FF3B3B;
+  --destructive-foreground: #FFFFFF;
 
-  --primary: oklch(0.78 0.16 62);
-  --primary-foreground: oklch(0.17 0.02 60);
+  /* Threat tiers (Consensus Gate) - fixed semantic palette */
+  --tier-red: #FF3B3B;
+  --tier-orange: #FF9F1C;
+  --tier-yellow: #FFD60A;
+  --tier-green: #39FF88;
 
-  --secondary: oklch(0.27 0.01 250);
-  --secondary-foreground: oklch(0.92 0.005 250);
+  /* Low-contrast hairlines, NOT decorative gradient borders */
+  --border: #1C232E;
+  --input: #1C232E;
+  --ring: #39FF88;
 
-  --muted: oklch(0.26 0.01 250);
-  --muted-foreground: oklch(0.66 0.012 250);
-
-  --accent: oklch(0.28 0.02 250);
-  --accent-foreground: oklch(0.94 0.005 250);
-
-  --destructive: oklch(0.62 0.22 22);
-  --destructive-foreground: oklch(0.97 0.01 20);
-
-  --border: oklch(0.34 0.012 250 / 55%);
-  --input: oklch(0.34 0.012 250 / 70%);
-  --ring: oklch(0.78 0.16 62);
-
-  --signal: oklch(0.78 0.16 62);
-  --signal-foreground: oklch(0.17 0.02 60);
-  --data: oklch(0.78 0.13 205);
-  --success: oklch(0.75 0.16 155);
-  --warn: oklch(0.8 0.15 85);
-  --critical: oklch(0.62 0.23 22);
-  --grid: oklch(0.32 0.012 250 / 35%);
-
-  --glass: color-mix(in oklab, var(--panel) 78%, transparent);
-  --gradient-signal: linear-gradient(
-    135deg,
-    oklch(0.82 0.16 68),
-    oklch(0.7 0.17 45)
-  );
-  --gradient-panel: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--panel-2) 70%, transparent),
-    color-mix(in oklab, var(--panel) 90%, transparent)
-  );
-  --shadow-panel: 0 18px 40px -22px oklch(0 0 0 / 85%);
-  --glow-signal: 0 0 0 1px color-mix(in oklab, var(--signal) 35%, transparent),
-    0 0 22px -4px color-mix(in oklab, var(--signal) 55%, transparent);
-  --glow-critical: 0 0 18px -2px color-mix(in oklab, var(--critical) 70%, transparent);
+  /* Shadows: subdued, functional defense console depth */
+  --shadow-panel: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--border);
   }
 
   html,
   body,
   #root {
     height: 100%;
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
+  /* Monospace by default for all tabular numbers, IDs, and hashes */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+  }
+
+  /* Low-noise terminal scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #0A0E14;
   }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
-    border-radius: 99px;
+    background: #1C232E;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #39FF88;
+  }
+
+  /* Dense data tables: 3% opacity zebra-striping only */
+  tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.025);
+  }
+  tbody tr:hover {
+    background-color: rgba(57, 255, 136, 0.04);
   }
 }
 
-@utility glass {
-  background: var(--gradient-panel);
-  backdrop-filter: blur(14px);
-  border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
-  border-radius: 12px;
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),
-    var(--shadow-panel);
+/* ── Threat Tier Inset Glows (Subtle, strictly semantic) ──────── */
+
+.tier-glow-red {
+  box-shadow: inset 0 0 16px -4px rgba(255, 59, 59, 0.25);
 }
 
-@utility hud-grid {
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 32px 32px;
+.tier-glow-orange {
+  box-shadow: inset 0 0 16px -4px rgba(255, 159, 28, 0.25);
 }
 
-@utility lift {
-  transition:
-    transform 150ms ease,
-    background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
-  &:hover {
-    transform: translateY(-2px);
+.tier-glow-yellow {
+  box-shadow: inset 0 0 16px -4px rgba(255, 214, 10, 0.20);
+}
+
+.tier-glow-green {
+  box-shadow: inset 0 0 16px -4px rgba(57, 255, 136, 0.20);
+}
+
+/* ── Node Blooms for Live Graph ───────────────────────────────── */
+
+.node-bloom-red {
+  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.7));
+}
+
+.node-bloom-orange {
+  filter: drop-shadow(0 0 8px rgba(255, 159, 28, 0.6));
+}
+
+.node-bloom-yellow {
+  filter: drop-shadow(0 0 7px rgba(255, 214, 10, 0.55));
+}
+
+.node-bloom-green {
+  filter: drop-shadow(0 0 7px rgba(57, 255, 136, 0.65));
+}
+
+/* ── Scoped CRT Scanline Overlay (Boot Screen Only) ───────────── */
+
+.crt-boot-screen {
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-boot-screen::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.35) 50%
+  ),
+  linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  z-index: 30;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.crt-boot-screen::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: rgba(18, 16, 16, 0.1);
+  opacity: 0;
+  z-index: 31;
+  pointer-events: none;
+  animation: crt-flicker 0.15s infinite;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.03; }
+  50% { opacity: 0.07; }
+  100% { opacity: 0.04; }
+}
+
+/* ── New Alert Slide & Highlight Flash ────────────────────────── */
+
+@keyframes alert-new-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    background-color: rgba(57, 255, 136, 0.18);
   }
-  &:active {
-    transform: scale(0.96);
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
   }
 }
 
-@utility mono-xs {
+.alert-new-flash {
+  animation: alert-new-slide 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Defense Radar Sweep & Ring ───────────────────────────────── */
+
+@keyframes radar-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.animate-radar-ring {
+  animation: radar-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* ── Monospace Utilities ──────────────────────────────────────── */
+
+.mono-xs {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-@keyframes st-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.terminal-border {
+  border: 1px solid #1C232E;
 }
 
-@keyframes st-breathe {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--signal) 45%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 22px 3px color-mix(in oklab, var(--signal) 45%, transparent);
-  }
+.terminal-border-t {
+  border-top: 1px solid #1C232E;
 }
 
-@keyframes st-pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 currentColor;
-  }
-  50% {
-    opacity: 0.55;
-    box-shadow: 0 0 12px 3px currentColor;
+.terminal-border-b {
+  border-bottom: 1px solid #1C232E;
+}
+
+.terminal-border-r {
+  border-right: 1px solid #1C232E;
+}
+
+.terminal-border-l {
+  border-left: 1px solid #1C232E;
+}
+
+/* ── Reduced Motion Override ──────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
-
-@keyframes st-glow-slow {
-  0%,
-  100% {
-    box-shadow: 0 0 14px -6px color-mix(in oklab, var(--signal) 80%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 28px 0px color-mix(in oklab, var(--signal) 60%, transparent);
-  }
-}
-
-@keyframes st-shimmer {
-  from {
-    background-position: -200% 0;
-  }
-  to {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes st-scan {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(900%);
-  }
-}
-
-@utility animate-rise {
-  animation: st-rise 300ms ease-out both;
-}
-@utility animate-breathe {
-  animation: st-breathe 2s ease-in-out infinite;
-}
-@utility animate-pulse-dot {
-  animation: st-pulse-dot 1.6s ease-in-out infinite;
-}
-@utility animate-glow-slow {
-  animation: st-glow-slow 3s ease-in-out infinite;
-}
-@utility animate-scan {
-  animation: st-scan 6s linear infinite;
-}
-@utility shimmer {
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, white 8%, transparent),
-    transparent
-  );
-  background-size: 200% 100%;
-  animation: st-shimmer 1.6s linear infinite;
-}
-
-/* ── Graph Explorer ─────────────────────────────────────────── */
-
-@utility dot-grid {
-  background-color: oklch(0.13 0.006 250);
-  background-image: radial-gradient(color-mix(in oklab, var(--grid) 90%, transparent) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-
-@keyframes st-breathe-red {
-  0%, 100% { box-shadow: 0 0 10px -2px var(--critical), 0 0 0 0 color-mix(in oklab, var(--critical) 55%, transparent); }
-  50% { box-shadow: 0 0 34px 6px color-mix(in oklab, var(--critical) 70%, transparent), 0 0 0 6px color-mix(in oklab, var(--critical) 12%, transparent); }
-}
-@utility animate-breathe-red { animation: st-breathe-red 1.5s ease-in-out infinite; }
-
-@keyframes st-spin-slow { to { transform: rotate(360deg); } }
-@utility animate-spin-slow { animation: st-spin-slow 10s linear infinite; }
-
-@keyframes st-ripple {
-  0% { opacity: 0.8; transform: scale(0.6); }
-  100% { opacity: 0; transform: scale(2.6); }
-}
-@utility animate-ripple { animation: st-ripple 2.4s ease-out infinite; }
-
-@keyframes st-float {
-  0%, 100% { transform: translate(-50%, calc(-50% - 4px)); }
-  50% { transform: translate(-50%, calc(-50% + 4px)); }
-}
-@utility animate-float { animation: st-float 4s ease-in-out infinite; }
-
-@keyframes st-dash { to { stroke-dashoffset: -24; } }
-@utility animate-dash { animation: st-dash 0.8s linear infinite; }
-
-@keyframes st-draw { from { stroke-dashoffset: 400; } to { stroke-dashoffset: 0; } }
-
-@keyframes st-slide-right {
-  from { opacity: 0; transform: translateX(28px); box-shadow: -18px 0 24px -12px var(--signal); }
-  to { opacity: 1; transform: none; box-shadow: none; }
-}
-@utility animate-slide-right { animation: st-slide-right 420ms ease-out both; }
-
-@keyframes st-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@utility animate-grow-x { animation: st-grow-x 700ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left; }
-
-@keyframes st-confirm-ripple {
-  0% { opacity: 0.9; transform: scale(0.2); }
-  100% { opacity: 0; transform: scale(1.6); }
-}
-@utility animate-confirm-ripple { animation: st-confirm-ripple 700ms ease-out forwards; }
-
-@keyframes st-rise {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@utility animate-rise { animation: st-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-@keyframes st-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@utility animate-fade-in { animation: st-fade-in 220ms ease-out both; }

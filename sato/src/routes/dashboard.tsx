@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileBarChart, Globe2, Network, ShieldAlert, TrendingUp, ArrowUpRight } from "lucide-react";
+import { FileBarChart, Globe2, Network, ShieldAlert, TrendingUp, ArrowUpRight, Activity } from "lucide-react";
 import { AppShell } from "@/components/st/AppShell";
 import { CountUp } from "@/components/st/CountUp";
 import { Sparkline } from "@/components/st/Sparkline";
 import { WorldHeatmap } from "@/components/st/WorldHeatmap";
-import { cases, sparkline, type RiskLevel } from "@/lib/mock-data";
+import { cases, sparkline } from "@/lib/mock-data";
 import { fetchStats, fetchAlerts, type GlobalStats, type BackendAlert } from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
@@ -16,36 +16,23 @@ export const Route = createFileRoute("/dashboard")({
         name: "description",
         content: "Live cryptocurrency crime metrics: transactions analysed, high-risk alerts, syndicates detected and flagged jurisdictions.",
       },
-      { property: "og:title", content: "Operations Dashboard — SatoshiTrace" },
-      {
-        property: "og:description",
-        content: "Live forensic metrics across active Bitcoin investigations.",
-      },
     ],
   }),
   component: Dashboard,
 });
 
-const RISK_STYLE: Record<string, string> = {
-  CRITICAL: "bg-critical/20 text-critical ring-critical/40",
-  RED: "bg-critical/20 text-critical ring-critical/40",
-  HIGH: "bg-signal/20 text-signal ring-signal/40",
-  ORANGE: "bg-signal/20 text-signal ring-signal/40",
-  MEDIUM: "bg-warn/15 text-warn ring-warn/40",
-  YELLOW: "bg-warn/15 text-warn ring-warn/40",
-  LOW: "bg-data/15 text-data ring-data/40",
-  GREEN: "bg-success/15 text-success ring-success/40",
+const RISK_BADGE: Record<string, string> = {
+  CRITICAL: "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/40",
+  RED: "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/40",
+  HIGH: "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/40",
+  ORANGE: "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/40",
+  MEDIUM: "bg-[#FFD60A]/15 text-[#FFD60A] border border-[#FFD60A]/40",
+  YELLOW: "bg-[#FFD60A]/15 text-[#FFD60A] border border-[#FFD60A]/40",
+  LOW: "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40",
+  GREEN: "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40",
 };
 
-function Card({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  return (
-    <div className="glass animate-rise p-4" style={{ animationDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
-
-function Dashboard() {
+export function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<GlobalStats>({
     total_transactions_analyzed: 4671,
@@ -76,127 +63,172 @@ function Dashboard() {
   }, []);
 
   return (
-    <AppShell title="Operations Dashboard" breadcrumb="HOME / NATIONAL CYBER OPS / LIVE METRICS">
-      <div className="h-full overflow-y-auto p-5">
-        <div className="grid grid-cols-4 gap-4">
-          <Card delay={0}>
-            <div className="mono-xs text-muted-foreground">Transactions Analysed</div>
-            <div className="mt-1 font-mono text-[26px] font-bold text-foreground">
+    <AppShell title="Operations Dashboard" breadcrumb="HQ / NATIONAL CYBER OPERATIONS / METRIC FEEDS">
+      <div className="h-full overflow-y-auto p-4 space-y-4 font-mono select-none">
+        {/* Top 4 KPI Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
+            <div className="text-[10px] uppercase tracking-wider text-[#7D8590]">
+              TOTAL TRANSACTIONS ANALYSED
+            </div>
+            <div className="mt-1 font-mono text-2xl font-bold text-[#E6EDF3] tabular-nums">
               <CountUp value={stats.total_transactions_analyzed} />
             </div>
-            <Sparkline data={sparkline} />
-          </Card>
-
-          <Card delay={60}>
-            <div className="mono-xs flex items-center gap-2 text-muted-foreground">
-              High Risk Alerts
-              <span className="animate-pulse-dot h-2 w-2 rounded-full bg-critical text-critical" />
+            <div className="mt-2 h-7">
+              <Sparkline data={sparkline} />
             </div>
-            <div className="mt-1 font-mono text-[26px] font-bold text-critical">
+          </div>
+
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-[#7D8590]">
+                HIGH-RISK ALERTS
+              </span>
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B3B] animate-pulse shadow-[0_0_6px_#FF3B3B]" />
+            </div>
+            <div className="mt-1 font-mono text-2xl font-bold text-[#FF3B3B] tabular-nums">
               <CountUp value={stats.high_risk_alerts} />
             </div>
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-success">
-              <TrendingUp size={12} /> 3-Model Consensus Red Leads
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-[#FF3B3B]">
+              <TrendingUp size={11} />
+              <span>3-MODEL CONSENSUS RED LEADS</span>
             </div>
-          </Card>
+          </div>
 
-          <Card delay={120}>
-            <div className="mono-xs flex items-center gap-2 text-muted-foreground">
-              <Network size={12} /> Syndicates Detected
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#7D8590]">
+              <Network size={11} className="text-[#39FF88]" />
+              <span>SYNDICATES DETECTED</span>
             </div>
-            <div className="mt-1 font-mono text-[26px] font-bold text-foreground">
+            <div className="mt-1 font-mono text-2xl font-bold text-[#E6EDF3] tabular-nums">
               <CountUp value={stats.syndicates_detected} />
             </div>
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              Louvain community clustering
+            <div className="mt-1 text-[10px] text-[#7D8590]">
+              LOUVAIN COMMUNITY CLUSTERING
             </div>
-          </Card>
+          </div>
 
-          <Card delay={180}>
-            <div className="mono-xs flex items-center gap-2 text-muted-foreground">
-              <Globe2 size={12} /> Validated False Positive Rate
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#7D8590]">
+              <Globe2 size={11} className="text-[#39FF88]" />
+              <span>FALSE POSITIVE GATE</span>
             </div>
-            <div className="mt-1 font-mono text-[26px] font-bold text-success">
+            <div className="mt-1 font-mono text-2xl font-bold text-[#39FF88] tabular-nums">
               {stats.verified_false_positive_rate}
             </div>
-            <div className="mono-xs mt-1.5 flex gap-2 text-muted-foreground">
-              <span className="rounded bg-muted px-1.5 py-0.5">500+ Whitelisted</span>
-              <span className="rounded bg-muted px-1.5 py-0.5">WazirX / Binance</span>
+            <div className="mt-1.5 flex gap-1.5 text-[9px] text-[#7D8590]">
+              <span className="rounded bg-[#0A0E14] px-1.5 py-0.5 border border-[#1C232E]">500+ WHITELISTED</span>
+              <span className="rounded bg-[#0A0E14] px-1.5 py-0.5 border border-[#1C232E]">WAZIRX // COINDCX</span>
             </div>
-          </Card>
+          </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-5 gap-4">
-          <div className="glass animate-rise col-span-3 p-4" style={{ animationDelay: "220ms" }}>
-            <div className="flex items-center justify-between">
+        {/* Middle Two-Column Grid: Case Ledger & Live Threat Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+          {/* Recent Ingested Cases Table (3 cols) */}
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 lg:col-span-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1C232E]">
               <div className="flex items-center gap-2">
-                <FileBarChart size={14} className="text-signal" />
-                <h2 className="text-[13px] font-semibold tracking-wide">Recent Ingested Cases</h2>
+                <FileBarChart size={13} className="text-[#39FF88]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  INGESTED CASE LEDGER
+                </h2>
               </div>
               <button
                 onClick={() => navigate({ to: "/" })}
-                className="mono-xs flex items-center gap-1 text-signal hover:underline"
+                className="flex items-center gap-1 text-[10px] text-[#39FF88] hover:underline"
               >
-                Open Graph Explorer <ArrowUpRight size={12} />
+                <span>OPEN GRAPH EXPLORER</span>
+                <ArrowUpRight size={11} />
               </button>
             </div>
-            <table className="mt-3 w-full text-left text-[12px]">
-              <thead>
-                <tr className="mono-xs text-muted-foreground border-b border-border/50 pb-2">
-                  <th className="pb-2 font-normal">Case ID</th>
-                  <th className="pb-2 font-normal">Filename</th>
-                  <th className="pb-2 font-normal">Time (IST)</th>
-                  <th className="pb-2 text-right font-normal">Transactions</th>
-                  <th className="pb-2 text-right font-normal">Alerts</th>
-                  <th className="pb-2 text-right font-normal">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {cases.map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="mono-xs py-2.5 font-bold text-foreground">{c.id}</td>
-                    <td className="py-2.5 font-mono text-[11px] text-muted-foreground">{c.filename}</td>
-                    <td className="py-2.5 text-muted-foreground">{c.uploaded}</td>
-                    <td className="mono-xs py-2.5 text-right text-foreground">{c.transactions.toLocaleString()}</td>
-                    <td className="mono-xs py-2.5 text-right font-bold text-critical">{c.alerts}</td>
-                    <td className="py-2.5 text-right">
-                      <span className="mono-xs rounded bg-success/15 px-2 py-0.5 font-semibold text-success ring-1 ring-success/30">
-                        {c.status}
-                      </span>
-                    </td>
+
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-left text-[11px] border-collapse">
+                <thead>
+                  <tr className="border-b border-[#1C232E] text-[#7D8590] text-[9.5px] uppercase tracking-wider bg-[#0A0E14]/80">
+                    <th className="py-2 px-2 font-medium">CASE ID</th>
+                    <th className="py-2 px-2 font-medium">EVIDENCE FILE</th>
+                    <th className="py-2 px-2 font-medium">TIMESTAMP (IST)</th>
+                    <th className="py-2 px-2 text-right font-medium">TX COUNT</th>
+                    <th className="py-2 px-2 text-right font-medium">ALERTS</th>
+                    <th className="py-2 px-2 text-right font-medium">SEAL STATUS</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#1C232E]/40">
+                  {cases.map((c, idx) => (
+                    <tr
+                      key={c.id}
+                      className={`hover:bg-[#161B22] transition-colors ${
+                        idx % 2 === 1 ? "bg-white/[0.015]" : ""
+                      }`}
+                    >
+                      <td className="py-2 px-2 font-bold text-[#E6EDF3]">{c.id}</td>
+                      <td className="py-2 px-2 text-[#7D8590] text-[10px]">{c.filename}</td>
+                      <td className="py-2 px-2 text-[#7D8590] tabular-nums">{c.uploaded}</td>
+                      <td className="py-2 px-2 text-right text-[#E6EDF3] tabular-nums font-medium">
+                        {c.transactions.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-2 text-right font-bold text-[#FF3B3B] tabular-nums">
+                        {c.alerts}
+                      </td>
+                      <td className="py-2 px-2 text-right">
+                        <span className="rounded bg-[#39FF88]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#39FF88] border border-[#39FF88]/30">
+                          {c.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="glass animate-rise col-span-2 p-4" style={{ animationDelay: "280ms" }}>
-            <div className="flex items-center justify-between">
+          {/* Live Threat Feed (2 cols) */}
+          <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 lg:col-span-2 flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1C232E]">
               <div className="flex items-center gap-2">
-                <ShieldAlert size={14} className="text-critical" />
-                <h2 className="text-[13px] font-semibold tracking-wide">Live Threat Feed</h2>
+                <ShieldAlert size={13} className="text-[#FF3B3B]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  LIVE THREAT FEED
+                </h2>
               </div>
-              <span className="mono-xs text-muted-foreground">{alertsList.length} Active Leads</span>
+              <span className="text-[10px] text-[#7D8590] tabular-nums">
+                {alertsList.length} ACTIVE LEADS
+              </span>
             </div>
-            <div className="mt-3 space-y-2 max-h-[360px] overflow-y-auto pr-1">
+
+            <div className="mt-2 space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
               {alertsList.map((a, idx) => (
                 <div
                   key={`${a.address}_${idx}`}
                   onClick={() => navigate({ to: "/" })}
-                  className="flex items-center justify-between rounded-md border border-border/40 bg-background/40 p-2.5 text-[12px] hover:border-signal/50 cursor-pointer transition-all"
+                  className="group flex items-center justify-between rounded border border-[#1C232E] bg-[#0A0E14] p-2 text-xs hover:border-[#39FF88]/40 cursor-pointer transition-all"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`mono-xs shrink-0 rounded px-1.5 py-0.5 ring-1 ${RISK_STYLE[a.tier]}`}>
+                    <span
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider tabular-nums ${
+                        RISK_BADGE[a.tier] || RISK_BADGE.RED
+                      }`}
+                    >
                       {a.tier}
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate font-mono text-[11px] text-foreground">{a.address}</div>
-                      <div className="text-[10px] text-muted-foreground">{a.primary_tactic}</div>
+                      <div className="truncate font-mono text-[10.5px] text-[#E6EDF3] group-hover:text-[#39FF88] transition-colors">
+                        {a.address}
+                      </div>
+                      <div className="text-[9px] text-[#7D8590] truncate">
+                        {a.primary_tactic}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-mono text-[11px] font-bold text-critical">{a.risk_score_pct}%</div>
-                    <div className="mono-xs text-[10px] text-muted-foreground">{a.country} {a.flag}</div>
+                  <div className="text-right shrink-0 ml-2">
+                    <div className="font-mono text-[10.5px] font-bold text-[#FF3B3B] tabular-nums">
+                      {a.risk_score_pct}%
+                    </div>
+                    <div className="text-[9px] text-[#7D8590] tabular-nums">
+                      {a.country} {a.flag}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -204,10 +236,12 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="mt-4">
+        {/* Global Intelligence Heatmap Radar */}
+        <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5">
           <WorldHeatmap />
         </div>
       </div>
     </AppShell>
   );
 }
+export default Dashboard;

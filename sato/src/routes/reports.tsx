@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Download, ShieldCheck, Hash, ExternalLink } from "lucide-react";
+import { Download, ShieldCheck, Hash, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
 import { getPdfReportUrl } from "@/lib/api";
@@ -7,9 +7,11 @@ import { getPdfReportUrl } from "@/lib/api";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Evidence Reports — SatoshiTrace" },
-      { name: "description", content: "Generate Section 65B compliant evidence bundles with cryptographic integrity attestation." },
-      { property: "og:title", content: "Evidence Reports — SatoshiTrace" },
+      { title: "Section 65B Dossiers — SatoshiTrace" },
+      {
+        name: "description",
+        content: "Generate Section 65B compliant evidence bundles with cryptographic integrity attestation.",
+      },
     ],
   }),
   component: EvidenceReportsPage,
@@ -24,7 +26,7 @@ const DOSSIERS = [
     records: 4671,
     suspects: 4,
     syndicates: 7,
-    status: "CERTIFIED",
+    status: "SEALED // CERTIFIED",
   },
   {
     id: "CASE-2026-ED-0233",
@@ -34,7 +36,7 @@ const DOSSIERS = [
     records: 12890,
     suspects: 12,
     syndicates: 3,
-    status: "CERTIFIED",
+    status: "SEALED // CERTIFIED",
   },
   {
     id: "CASE-2026-NCB-0119",
@@ -44,11 +46,11 @@ const DOSSIERS = [
     records: 3410,
     suspects: 6,
     syndicates: 2,
-    status: "CERTIFIED",
+    status: "SEALED // CERTIFIED",
   },
 ];
 
-function EvidenceReportsPage() {
+export function EvidenceReportsPage() {
   const handleDownload = (caseId: string) => {
     window.open(getPdfReportUrl("default", caseId), "_blank");
     toast.success("Downloading Section 65B Electronic Evidence Dossier", {
@@ -57,76 +59,98 @@ function EvidenceReportsPage() {
   };
 
   return (
-    <AppShell title="Evidence Reports" breadcrumb="HOME / EVIDENCE DOSSIERS / SECTION 65B IT ACT">
-      <div className="h-full overflow-y-auto p-5 space-y-5">
-        <div className="glass flex items-start justify-between p-5">
-          <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
-              <ShieldCheck size={24} />
+    <AppShell title="Evidence Dossiers" breadcrumb="HQ / COURT EVIDENCE / SECTION 65B IT ACT">
+      <div className="h-full overflow-y-auto p-4 space-y-3 font-mono select-none">
+        {/* Dossier Hub Header Banner */}
+        <div className="flex flex-wrap items-start justify-between gap-4 rounded border border-[#1C232E] bg-[#0D1117] p-3.5">
+          <div className="flex items-start gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded border border-[#39FF88]/40 bg-[#39FF88]/10 text-[#39FF88]">
+              <ShieldCheck size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[16px] font-bold tracking-wide text-foreground">
-                  Section 65B IT Act Forensic Evidence Dossiers
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
+                  SECTION 65B INDIAN EVIDENCE ACT FORENSIC DOSSIERS
                 </h2>
-                <span className="mono-xs rounded bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
-                  Indian Evidence Act 1872 Compliant
+                <span className="rounded bg-[#39FF88]/15 px-2 py-0.2 text-[9px] font-bold text-[#39FF88] border border-[#39FF88]/30">
+                  STATUTORY COMPLIANT
                 </span>
               </div>
-              <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-                Automated legal dossiers certified under Section 65B(2) of the Indian Evidence Act, 1872. Each PDF includes cryptographic SHA-256 integrity hashes, SHAP feature attributions, and chain of custody documentation ready for judicial scrutiny.
+              <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#7D8590]">
+                Cryptographic chain of custody documentation generated in compliance with Section 65B(2) of the Indian Evidence Act, 1872. Each PDF bundle contains SHA-256 integrity hashes, SHAP feature attributions, and timestamped forensic ledger excerpts.
               </p>
             </div>
           </div>
           <button
             onClick={() => handleDownload("CASE-2026-CBI-0891")}
-            className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-[12px] font-bold text-white shadow-lg hover:bg-emerald-500 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-3 py-1.5 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
           >
-            <Download size={15} /> Generate Active Case Dossier
+            <Download size={13} />
+            <span>GENERATE ACTIVE CASE DOSSIER</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        {/* Dossier Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {DOSSIERS.map((d) => (
-            <div key={d.id} className="glass flex flex-col justify-between p-4 space-y-4">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="mono-xs font-bold text-signal">{d.id}</span>
-                  <span className="mono-xs rounded bg-emerald-500/15 px-2 py-0.5 text-emerald-400 font-semibold">
+            <div
+              key={d.id}
+              className="flex flex-col justify-between rounded border border-[#1C232E] bg-[#0D1117] p-3.5 space-y-3"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-[#1C232E]">
+                  <span className="font-bold text-[#39FF88] text-xs">{d.id}</span>
+                  <span className="rounded bg-[#39FF88]/15 px-1.5 py-0.2 text-[9px] font-semibold text-[#39FF88] border border-[#39FF88]/30">
                     {d.status}
                   </span>
                 </div>
-                <h3 className="mt-2 text-[14px] font-bold text-foreground line-clamp-2">{d.title}</h3>
-                <div className="mt-1 text-[11px] text-muted-foreground">{d.date}</div>
 
-                <div className="mt-3 space-y-1 rounded bg-background/50 p-2.5 font-mono text-[10px]">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Transactions:</span>
-                    <span className="text-foreground">{d.records.toLocaleString()}</span>
+                <h3 className="text-xs font-bold text-[#E6EDF3] leading-snug line-clamp-2">
+                  {d.title}
+                </h3>
+                <div className="text-[10px] text-[#7D8590] tabular-nums">{d.date}</div>
+
+                <div className="space-y-1 rounded border border-[#1C232E] bg-[#0A0E14] p-2 text-[10px]">
+                  <div className="flex items-center justify-between text-[#7D8590]">
+                    <span>SEIZED TRANSACTIONS:</span>
+                    <span className="font-bold text-[#E6EDF3] tabular-nums">{d.records.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Priority Suspects:</span>
-                    <span className="font-bold text-critical">{d.suspects} RED</span>
+                  <div className="flex items-center justify-between text-[#7D8590]">
+                    <span>PRIORITY SUSPECTS:</span>
+                    <span className="font-bold text-[#FF3B3B] tabular-nums">{d.suspects} RED</span>
                   </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Syndicates:</span>
-                    <span className="text-foreground">{d.syndicates}</span>
+                  <div className="flex items-center justify-between text-[#7D8590]">
+                    <span>LOUVAIN SYNDICATES:</span>
+                    <span className="font-bold text-[#FF9F1C] tabular-nums">{d.syndicates}</span>
                   </div>
                 </div>
 
-                <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[9.5px] text-muted-foreground truncate">
-                  <Hash size={11} className="shrink-0 text-signal" />
-                  <span className="truncate">{d.sha256}</span>
+                <div className="flex items-center justify-between rounded bg-[#0A0E14] px-2 py-1 border border-[#1C232E] text-[9px] text-[#7D8590]">
+                  <div className="flex items-center gap-1 min-w-0 truncate">
+                    <Hash size={10} className="text-[#39FF88] shrink-0" />
+                    <span className="truncate font-mono">{d.sha256}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(d.sha256);
+                      toast.success("SHA-256 hash copied!");
+                    }}
+                    className="text-[#7D8590] hover:text-[#39FF88] ml-1 p-0.5"
+                    title="Copy SHA-256"
+                  >
+                    <Copy size={10} />
+                  </button>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                <span className="mono-xs text-muted-foreground">Signed by LEA Examiner</span>
+              <div className="pt-2 border-t border-[#1C232E] flex items-center justify-between text-[10px]">
+                <span className="text-[#7D8590]">SIGNED // EXAMINER #8412</span>
                 <button
                   onClick={() => handleDownload(d.id)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
+                  className="flex items-center gap-1 text-[#39FF88] hover:underline font-semibold"
                 >
-                  <Download size={13} /> Download PDF
+                  <Download size={11} />
+                  <span>DOWNLOAD PDF</span>
                 </button>
               </div>
             </div>
@@ -136,3 +160,4 @@ function EvidenceReportsPage() {
     </AppShell>
   );
 }
+export default EvidenceReportsPage;
