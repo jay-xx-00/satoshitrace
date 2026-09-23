@@ -4,7 +4,7 @@ import { FileBarChart, Globe2, Network, ShieldAlert, TrendingUp, ArrowUpRight, A
 import { AppShell } from "@/components/st/AppShell";
 import { CountUp } from "@/components/st/CountUp";
 import { Sparkline } from "@/components/st/Sparkline";
-import { WorldHeatmap } from "@/components/st/WorldHeatmap";
+import { ForensicTacticsMatrix } from "@/components/st/ForensicTacticsMatrix";
 import { cases, sparkline } from "@/lib/mock-data";
 import { fetchStats, fetchAlerts, type GlobalStats, type BackendAlert } from "@/lib/api";
 
@@ -236,9 +236,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Global Intelligence Heatmap Radar */}
-        <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5">
-          <WorldHeatmap />
+        {/* Forensic Modus Operandi & Laundering Tactics Radar */}
+        <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
+          <ForensicTacticsMatrix />
         </div>
       </div>
     </AppShell>
