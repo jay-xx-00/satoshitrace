@@ -31,7 +31,14 @@ def extract_wallet_features(df):
     })
     
     for _, row in df.iterrows():
-        ts = int(row.get("timestamp", 0))
+        raw_ts = row.get("timestamp", 0)
+        try:
+            ts = int(float(raw_ts))
+        except (ValueError, TypeError):
+            try:
+                ts = int(pd.to_datetime(raw_ts, utc=True).timestamp())
+            except Exception:
+                ts = 0
         src_ip = str(row.get("src_ip", ""))
         asn = str(row.get("asn", ""))
         txid = str(row.get("txid", ""))

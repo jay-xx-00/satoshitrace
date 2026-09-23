@@ -1,6 +1,7 @@
 import requests
 import json
 import sys
+import os
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -18,7 +19,8 @@ def test_api():
     print("✓ Global Stats Passed:", r_stats.json())
 
     print("\n=== [2] Testing File Upload & Ingestion with Test Dataset ===")
-    with open(r"e:\sih2026\test_investigation_dataset.csv", "rb") as f:
+    dataset_path = os.path.join(os.path.dirname(__file__), "test_investigation_dataset.csv")
+    with open(dataset_path, "rb") as f:
         files = {"file": ("test_investigation_dataset.csv", f, "text/csv")}
         r = requests.post(f"{BASE_URL}/api/upload", files=files)
     assert r.status_code == 200, f"Upload failed: {r.text}"

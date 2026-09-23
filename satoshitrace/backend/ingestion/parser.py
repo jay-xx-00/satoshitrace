@@ -5,6 +5,7 @@ SatoshiTrace Multi-Format Ingestion Parser (CSV / JSON / XML)
 import pandas as pd
 import io
 import json
+import time
 import xml.etree.ElementTree as ET
 from .hasher import compute_file_sha256
 from .validator import validate_dataframe
@@ -59,6 +60,25 @@ def parse_uploaded_file(file_bytes, filename):
         df["input_addresses"] = df["input_addresses"].astype(str)
         df["output_addresses"] = df["output_addresses"].astype(str)
         df["txid"] = df["txid"].astype(str)
+
+        # Robust timestamp normalization: supports ISO-8601 strings, dates, and Unix epochs
+        def _normalize_ts(val):
+            if pd.isna(val) or val is None or val == "":
+                return int(time.time())
+            try:
+                return int(float(val))
+            except (ValueError, TypeError):
+                pass
+            try:
+                dt = pd.to_datetime(val, utc=True)
+                return int(dt.timestamp())
+            except Exception:
+                return int(time.time())
+
+        if "timestamp" in df:
+            df["timestamp"] = df["timestamp"].apply(_normalize_ts).astype(int)
+        else:
+            df["timestamp"] = int(time.time())
         
         stats["sha256"] = hash_info["sha256"]
         stats["filename"] = filename

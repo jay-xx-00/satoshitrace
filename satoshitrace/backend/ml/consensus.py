@@ -24,7 +24,11 @@ def evaluate_consensus(model_a_result, graph_metric, tactics_list, is_whiteliste
             "models_agreed": 0,
             "total_models": 3,
             "status": "WHITELISTED",
-            "flag_color": "#10B981" # Green
+            "flag_color": "#10B981", # Green
+            "model_a_vote": False,
+            "model_b_vote": False,
+            "model_c_vote": False,
+            "is_escalated": False
         }
         
     vote_a = bool(model_a_result.get("is_model_a_anomaly", False))
@@ -77,5 +81,5 @@ def evaluate_consensus(model_a_result, graph_metric, tactics_list, is_whiteliste
         "model_b_vote": vote_b,
         "model_c_vote": vote_c,
         "flag_color": flag_color,
-        "is_escalated": tier in ["RED", "ORANGE"]
+        "is_escalated": tier in ["RED", "ORANGE", "YELLOW"]
     }

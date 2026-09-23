@@ -7,6 +7,7 @@ Builds multi-layer graphs linking:
 """
 
 import networkx as nx
+import pandas as pd
 from ..geoip.resolver import resolver
 
 def build_heterogeneous_graph(df):
@@ -20,7 +21,14 @@ def build_heterogeneous_graph(df):
         txid = str(row.get("txid", "")).strip()
         src_ip = str(row.get("src_ip", "")).strip()
         dst_ip = str(row.get("dst_ip", "")).strip()
-        ts = int(row.get("timestamp", 0))
+        raw_ts = row.get("timestamp", 0)
+        try:
+            ts = int(float(raw_ts))
+        except (ValueError, TypeError):
+            try:
+                ts = int(pd.to_datetime(raw_ts, utc=True).timestamp())
+            except Exception:
+                ts = 0
         fee = float(row.get("fee_btc", 0.0001))
         script = str(row.get("script_type", "p2wpkh"))
         country = str(row.get("geo_country", "IN"))
