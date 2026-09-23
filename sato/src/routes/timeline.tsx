@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Play, Pause, RotateCcw, Activity, ArrowRight, ShieldAlert, Clock } from "lucide-react";
 import { AppShell } from "@/components/st/AppShell";
@@ -94,7 +94,7 @@ export function TimelinePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
-  useEffect(() => {
+  const loadTimeline = useCallback(() => {
     fetch(`${API_BASE}/timeline/default?steps=5`)
       .then((res) => res.json())
       .then((data) => {
@@ -121,6 +121,13 @@ export function TimelinePage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadTimeline();
+    const handleRefresh = () => loadTimeline();
+    window.addEventListener("satoshitrace-refresh", handleRefresh);
+    return () => window.removeEventListener("satoshitrace-refresh", handleRefresh);
+  }, [loadTimeline]);
 
   useEffect(() => {
     let interval: any;

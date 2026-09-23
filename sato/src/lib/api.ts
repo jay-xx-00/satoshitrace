@@ -170,3 +170,52 @@ export async function aiChat(message: string, jobId = "default", model?: string)
   return resp.json();
 }
 
+export interface CaseItem {
+  id: string;
+  filename: string;
+  uploaded: string;
+  transactions: number;
+  alerts: number;
+  status: "COMPLETE" | "PROCESSING" | "FAILED";
+  sha256: string;
+  is_active?: boolean;
+}
+
+export interface GraphZone {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  tag: string;
+  name: string;
+}
+
+export interface CaseInfo {
+  job_id: string;
+  filename: string;
+  sha256: string;
+  total_records: number;
+  alerts_count: number;
+  syndicates_count: number;
+  timestamp: number;
+}
+
+export interface GraphGnodesResponse {
+  job_id: string;
+  gnodes: any[];
+  gedges: any[];
+  node_count: number;
+  edge_count: number;
+  zones?: GraphZone[];
+  case_info?: CaseInfo;
+}
+
+export async function fetchCases(): Promise<CaseItem[]> {
+  const resp = await fetch(`${API_BASE}/cases`);
+  if (!resp.ok) throw new Error("Failed to fetch cases");
+  const data = await resp.json();
+  return data.cases || [];
+}
+
+

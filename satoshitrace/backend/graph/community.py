@@ -47,16 +47,28 @@ def detect_syndicate_clusters(G):
     node_to_cluster = {}
     cluster_summaries = []
 
-    SYNDICATE_NAMES = [
-        "LockBit Extortion Nexus",
-        "UPI Mule Network",
-        "Wasabi CoinJoin Pool",
-        "Tor Relays Syndicate",
-        "Shadow Cashout Group",
-    ]
-    
+    def _derive_cluster_name(comp_nodes, g_obj, idx):
+        tor_nodes = [n for n in comp_nodes if g_obj.nodes.get(n, {}).get("is_tor")]
+        countries = [g_obj.nodes.get(n, {}).get("country") for n in comp_nodes if g_obj.nodes.get(n, {}).get("country")]
+        countries = [c for c in countries if c and c not in ["XX", "UNKNOWN"]]
+        wallets = [n for n in comp_nodes if g_obj.nodes.get(n, {}).get("node_type") == "WALLET"]
+        top_country = max(set(countries), key=countries.count) if countries else None
+        
+        if tor_nodes:
+            suffix = f" [{top_country}]" if top_country else ""
+            return f"Tor Onion Relay Ring #{idx + 1}{suffix}"
+        elif len(wallets) >= 3:
+            suffix = f" [{top_country}]" if top_country else ""
+            return f"Multi-Wallet Syndicate #{idx + 1}{suffix}"
+        elif top_country:
+            return f"Regional Ingress Cluster #{idx + 1} ({top_country})"
+        elif wallets:
+            return f"Entity Network #{idx + 1} ({str(wallets[0])[:8]}...)"
+        else:
+            return f"Transaction Nexus #{idx + 1}"
+
     for c_idx, comp in enumerate(components):
-        cluster_name = SYNDICATE_NAMES[c_idx % len(SYNDICATE_NAMES)]
+        cluster_name = _derive_cluster_name(comp, G, c_idx)
             
         wallets_in_comp = [n for n in comp if G.nodes.get(n, {}).get("node_type") == "WALLET"]
         txs_in_comp = [n for n in comp if G.nodes.get(n, {}).get("node_type") == "TXID"]

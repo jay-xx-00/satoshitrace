@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search, ShieldAlert, Pin, CheckCircle2, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
-import { getPdfReportUrl } from "@/lib/api";
+import { getPdfReportUrl, fetchAlerts, fetchCases, type BackendAlert, type CaseItem } from "@/lib/api";
 
 export const Route = createFileRoute("/investigation")({
   head: () => ({
@@ -62,8 +62,45 @@ export function InvestigationPage() {
   const [query, setQuery] = useState("");
   const [pinned, setPinned] = useState<PinnedWallet[]>(DEFAULT_PINNED);
   const [notes, setNotes] = useState(
-    `CASE SUMMARY: Operation BlackRiver\n- Suspect nexus operating out of Frankfurt Tor Exit (185.220.101.44).\n- Identified 8-hop peeling chain laundering 25 BTC into Indian exchange accounts.\n- Statutory freeze notice under Section 91 CrPC drafted for WazirX KYC deposit vault.\n- Section 65B IT Act Certificate generated and hash-verified.`
+    `CASE SUMMARY: Operation Active Lead\n- Awaiting forensic evidence ledger ingestion.\n- Statutory freeze notice under Section 91 CrPC ready for exchange compliance.\n- Section 65B IT Act Certificate generated and hash-verified.`
   );
+  const [activeCase, setActiveCase] = useState<CaseItem | null>(null);
+
+  const loadData = async () => {
+    try {
+      const [alerts, cases] = await Promise.all([fetchAlerts("default"), fetchCases()]);
+      if (cases && cases.length > 0) {
+        setActiveCase(cases[0]);
+      }
+      if (alerts && alerts.length > 0) {
+        const livePins: PinnedWallet[] = alerts.slice(0, 4).map((a) => ({
+          address: a.address,
+          label: a.cluster_name || "Correlated Entity",
+          role: a.tier === "RED" ? "Primary Threat Lead" : "Correlated Counterparty",
+          volume: `${a.total_btc_moved.toFixed(4)} BTC`,
+          risk: (a.tier === "RED" ? "CRITICAL" : a.tier === "ORANGE" ? "HIGH" : "MEDIUM") as any,
+          pinnedAt: "Live Active Session",
+          tactics: `${a.primary_tactic} • ${a.country} (${a.asn})`,
+        }));
+        setPinned(livePins);
+
+        const top = alerts[0];
+        const fname = cases && cases.length > 0 ? cases[0].filename : "Ingested Dataset";
+        setNotes(
+          `CASE SUMMARY: ${fname}\n- Lead suspect: ${top.address} (${top.risk_score_pct}% Risk • ${top.models_agreed}/3 Consensus).\n- Detected tactics: ${top.primary_tactic}.\n- Origin infrastructure: ${top.flag} ${top.country} via ${top.asn} (${top.is_tor ? "Tor Exit" : top.is_vpn ? "VPN Proxy" : "Direct IP"}).\n- Volume moved: ${top.total_btc_moved} BTC across ${top.tx_count} transactions.\n- Statutory freeze notice under Section 91 CrPC drafted for flagged addresses.\n- Cryptographic SHA-256 chain of custody locked under Section 65B IT Act.`
+        );
+      }
+    } catch {
+      // Fallback
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const handleRefresh = () => loadData();
+    window.addEventListener("satoshitrace-refresh", handleRefresh);
+    return () => window.removeEventListener("satoshitrace-refresh", handleRefresh);
+  }, []);
   const [searchResult, setSearchResult] = useState<any | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {

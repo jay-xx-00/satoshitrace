@@ -8,7 +8,7 @@ import json
 import time
 import xml.etree.ElementTree as ET
 from .hasher import compute_file_sha256
-from .validator import validate_dataframe
+from .validator import validate_dataframe, normalize_columns
 
 def parse_uploaded_file(file_bytes, filename):
     """
@@ -40,8 +40,9 @@ def parse_uploaded_file(file_bytes, filename):
             # Fallback attempt CSV
             df = pd.read_csv(io.BytesIO(file_bytes))
             
-        # Clean dataframe column names
+        # Clean dataframe column names & adapt raw schema
         df.columns = [str(c).strip() for c in df.columns]
+        df = normalize_columns(df)
         
         # Validate schema
         is_valid, missing, stats = validate_dataframe(df)
@@ -55,6 +56,15 @@ def parse_uploaded_file(file_bytes, filename):
         if "script_type" not in df: df["script_type"] = "p2wpkh"
         if "geo_country" not in df: df["geo_country"] = "IN"
         if "asn" not in df: df["asn"] = "AS13335 (Cloudflare)"
+        
+        # Ensure amounts are present
+        if "input_amounts_btc" not in df and "output_amounts_btc" in df:
+            df["input_amounts_btc"] = df["output_amounts_btc"]
+        elif "output_amounts_btc" not in df and "input_amounts_btc" in df:
+            df["output_amounts_btc"] = df["input_amounts_btc"]
+        elif "input_amounts_btc" not in df and "output_amounts_btc" not in df:
+            df["input_amounts_btc"] = "1.0000"
+            df["output_amounts_btc"] = "1.0000"
         
         # Ensure string types for addresses
         df["input_addresses"] = df["input_addresses"].astype(str)

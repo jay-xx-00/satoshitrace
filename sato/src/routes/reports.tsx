@@ -1,8 +1,9 @@
+import { useEffect, useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, ShieldCheck, Hash, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
-import { getPdfReportUrl } from "@/lib/api";
+import { getPdfReportUrl, fetchCases, fetchStats, type CaseItem, type GlobalStats } from "@/lib/api";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -51,6 +52,42 @@ const DOSSIERS = [
 ];
 
 export function EvidenceReportsPage() {
+  const [caseList, setCaseList] = useState<CaseItem[]>([]);
+  const [stats, setStats] = useState<GlobalStats | null>(null);
+
+  const loadData = async () => {
+    try {
+      const [cases, s] = await Promise.all([fetchCases(), fetchStats()]);
+      if (cases && cases.length > 0) setCaseList(cases);
+      if (s) setStats(s);
+    } catch {
+      // Fallback
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const handleRefresh = () => loadData();
+    window.addEventListener("satoshitrace-refresh", handleRefresh);
+    return () => window.removeEventListener("satoshitrace-refresh", handleRefresh);
+  }, []);
+
+  const activeDossiers = useMemo(() => {
+    if (caseList.length > 0) {
+      return caseList.map((c) => ({
+        id: c.id,
+        title: `Active Cyber Crime Forensic Dossier — ${c.filename}`,
+        date: `${c.uploaded} IST`,
+        sha256: c.sha256,
+        records: c.transactions,
+        suspects: stats ? stats.high_risk_alerts : c.alerts,
+        syndicates: stats ? stats.syndicates_detected : 1,
+        status: "SEALED // CERTIFIED",
+      }));
+    }
+    return DOSSIERS;
+  }, [caseList, stats]);
+
   const handleDownload = (caseId: string) => {
     window.open(getPdfReportUrl("default", caseId), "_blank");
     toast.success("Downloading Section 65B Electronic Evidence Dossier", {
@@ -82,7 +119,7 @@ export function EvidenceReportsPage() {
             </div>
           </div>
           <button
-            onClick={() => handleDownload("CASE-2026-CBI-0891")}
+            onClick={() => handleDownload(activeDossiers[0]?.id || "CASE-2026-CBI-0891")}
             className="flex items-center gap-1.5 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-3 py-1.5 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
           >
             <Download size={13} />
@@ -92,7 +129,7 @@ export function EvidenceReportsPage() {
 
         {/* Dossier Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {DOSSIERS.map((d) => (
+          {activeDossiers.map((d) => (
             <div
               key={d.id}
               className="flex flex-col justify-between rounded border border-[#1C232E] bg-[#0D1117] p-3.5 space-y-3"

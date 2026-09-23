@@ -5,8 +5,8 @@ import { AppShell } from "@/components/st/AppShell";
 import { CountUp } from "@/components/st/CountUp";
 import { Sparkline } from "@/components/st/Sparkline";
 import { ForensicTacticsMatrix } from "@/components/st/ForensicTacticsMatrix";
-import { cases, sparkline } from "@/lib/mock-data";
-import { fetchStats, fetchAlerts, type GlobalStats, type BackendAlert } from "@/lib/api";
+import { cases as mockCases, sparkline } from "@/lib/mock-data";
+import { fetchStats, fetchAlerts, fetchCases, type GlobalStats, type BackendAlert, type CaseItem } from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -45,12 +45,14 @@ export function Dashboard() {
     model_accuracy: "96.8%",
   });
   const [alertsList, setAlertsList] = useState<BackendAlert[]>([]);
+  const [caseList, setCaseList] = useState<CaseItem[]>([]);
 
   const loadData = async () => {
     try {
-      const [s, a] = await Promise.all([fetchStats(), fetchAlerts("default")]);
+      const [s, a, c] = await Promise.all([fetchStats(), fetchAlerts("default"), fetchCases()]);
       setStats(s);
       setAlertsList(a);
+      if (c && c.length > 0) setCaseList(c);
     } catch {
       // Fallback gracefully
     }
@@ -161,7 +163,7 @@ export function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1C232E]/40">
-                  {cases.map((c, idx) => (
+                  {(caseList.length > 0 ? caseList : mockCases).map((c, idx) => (
                     <tr
                       key={c.id}
                       className={`hover:bg-[#161B22] transition-colors ${

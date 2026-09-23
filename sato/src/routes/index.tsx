@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/st/AppShell";
 import { GraphCanvas } from "@/components/st/GraphCanvas";
 import { Inspector } from "@/components/st/Inspector";
-import { gNodes, type GNode } from "@/lib/graph-data";
+import { type GNode } from "@/lib/graph-data";
+import { type CaseInfo } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,16 +27,31 @@ export const Route = createFileRoute("/")({
 
 function GraphExplorer() {
   const [selected, setSelected] = useState<GNode | null>(null);
+  const [caseInfo, setCaseInfo] = useState<CaseInfo | null>(null);
+
+  useEffect(() => {
+    const handleCaseUpdate = (e: any) => {
+      if (e.detail) {
+        setCaseInfo(e.detail);
+      }
+    };
+    window.addEventListener("satoshitrace-case-updated", handleCaseUpdate);
+    return () => window.removeEventListener("satoshitrace-case-updated", handleCaseUpdate);
+  }, []);
+
+  const breadcrumb = caseInfo
+    ? `CASE ${caseInfo.job_id.slice(4, 12).toUpperCase()} / ${caseInfo.filename.toUpperCase()} / ${caseInfo.total_records.toLocaleString()} TXS`
+    : "ACTIVE EVIDENCE CASE / LIVE GRAPH EXPLORER";
 
   return (
     <AppShell
       title="Graph Explorer"
-      breadcrumb="CASE CBI-2026-0471 / CLUSTER BLACKRIVER / DEPTH 3"
+      breadcrumb={breadcrumb}
       aside={
         <Inspector
           node={selected}
           onClose={() => setSelected(null)}
-          onOpen={() => setSelected(gNodes[0] ?? null)}
+          onOpen={() => setSelected(null)}
         />
       }
     >

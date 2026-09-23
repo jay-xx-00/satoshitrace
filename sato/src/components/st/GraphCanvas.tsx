@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { gEdges as mockEdges, gNodes as mockNodes, type GNode, type GEdge, type GNodeType } from "@/lib/graph-data";
-import { API_BASE } from "@/lib/api";
+import { API_BASE, type GraphZone, type CaseInfo, type GraphGnodesResponse } from "@/lib/api";
 
 export const TYPE_META: Record<
   GNodeType,
@@ -366,9 +366,52 @@ export function GraphCanvas({
 
   const [nodes, setNodes] = useState<GNode[]>(mockNodes);
   const [edges, setEdges] = useState<GEdge[]>(mockEdges);
+  const [zones, setZones] = useState<GraphZone[]>([]);
+  const [caseInfo, setCaseInfo] = useState<CaseInfo | null>(null);
   const [positions, setPositions] = useState<Record<string, Pos>>({});
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Dynamic Money Trail computed strictly from active nodes and edges
+  const dynamicTrail = useMemo(() => {
+    const originNode =
+      selected && selected.type !== "cluster"
+        ? selected
+        : nodes.find((n) => n.type === "suspect") || nodes.find((n) => n.type === "wallet") || nodes[0];
+
+    if (!originNode) return null;
+
+    // Find first hop: outgoing edge from originNode, or incoming edge to originNode
+    const e1 = edges.find((e) => e.from === originNode.id) || edges.find((e) => e.to === originNode.id);
+    let hop1Node: GNode | undefined;
+    let hop2Node: GNode | undefined;
+    let e2: GEdge | undefined;
+
+    if (e1) {
+      const nextId = e1.from === originNode.id ? e1.to : e1.from;
+      hop1Node = nodes.find((n) => n.id === nextId);
+
+      if (hop1Node) {
+        e2 = edges.find(
+          (e) =>
+            (e.from === hop1Node!.id && e.to !== originNode.id) ||
+            (e.to === hop1Node!.id && e.from !== originNode.id)
+        );
+        if (e2) {
+          const destId = e2.from === hop1Node.id ? e2.to : e2.from;
+          hop2Node = nodes.find((n) => n.id === destId);
+        }
+      }
+    }
+
+    return {
+      origin: originNode,
+      hop1: hop1Node,
+      hop1Amount: e1?.amount || "—",
+      hop2: hop2Node,
+      hop2Amount: e2?.amount || "—",
+    };
+  }, [selected, nodes, edges]);
 
   // Dragging & Panning state
   const isPanningRef = useRef(false);
@@ -381,10 +424,21 @@ export function GraphCanvas({
     try {
       const resp = await fetch(`${API_BASE}/graph/default/gnodes`);
       if (!resp.ok) throw new Error("Backend offline");
-      const data = await resp.json();
+      const data: GraphGnodesResponse = await resp.json();
       if (data.gnodes && data.gnodes.length > 0) {
         setNodes(data.gnodes as GNode[]);
         setEdges(data.gedges as GEdge[]);
+        if (data.zones && data.zones.length > 0) {
+          setZones(data.zones);
+        } else {
+          setZones([]);
+        }
+        if (data.case_info) {
+          setCaseInfo(data.case_info);
+          window.dispatchEvent(
+            new CustomEvent("satoshitrace-case-updated", { detail: data.case_info })
+          );
+        }
         setIsLive(true);
       }
     } catch {
@@ -1146,16 +1200,24 @@ export function GraphCanvas({
 
           <div className="flex items-center gap-1.5 text-[9.5px] text-[#E6EDF3] shrink-0">
             <span className="rounded bg-[#FF3B3B]/15 px-2 py-0.5 font-bold text-[#FF3B3B] border border-[#FF3B3B]/30">
-              ORIGIN: {selected && selected.type !== "cluster" ? selected.label : "bc1q_loc"}
+              ORIGIN: {dynamicTrail?.origin.label || "SOURCE"} ({dynamicTrail?.origin.risk ?? 0}% RISK)
             </span>
-            <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
-            <span className="rounded bg-[#FF9F1C]/15 px-2 py-0.5 font-bold text-[#FF9F1C] border border-[#FF9F1C]/30 tabular-nums">
-              PEELING HOP: tx_peel_fa1e (22.99 BTC)
-            </span>
-            <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
-            <span className="rounded bg-[#FFD60A]/15 px-2 py-0.5 font-bold text-[#FFD60A] border border-[#FFD60A]/30 tabular-nums">
-              CASHOUT MULE: bc1q_smu (2.0 BTC)
-            </span>
+            {dynamicTrail?.hop1 && (
+              <>
+                <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
+                <span className="rounded bg-[#FF9F1C]/15 px-2 py-0.5 font-bold text-[#FF9F1C] border border-[#FF9F1C]/30 tabular-nums">
+                  TRANSFER HOP: {dynamicTrail.hop1.label} ({dynamicTrail.hop1Amount})
+                </span>
+              </>
+            )}
+            {dynamicTrail?.hop2 && (
+              <>
+                <ArrowRight size={11} className="text-[#39FF88] shrink-0" />
+                <span className="rounded bg-[#FFD60A]/15 px-2 py-0.5 font-bold text-[#FFD60A] border border-[#FFD60A]/30 tabular-nums">
+                  COUNTERPARTY: {dynamicTrail.hop2.label} ({dynamicTrail.hop2Amount})
+                </span>
+              </>
+            )}
           </div>
 
           <button
@@ -1247,42 +1309,9 @@ export function GraphCanvas({
             </defs>
 
             {/* Tactical Territorial Quadrant Hulls (Constellation View) */}
-            {layoutMode === "constellation" && (
+            {layoutMode === "constellation" && zones.length > 0 && (
               <g className="cluster-zones pointer-events-none select-none">
-                {[
-                  {
-                    x: 3,
-                    y: 6,
-                    w: 42,
-                    h: 40,
-                    color: "#EF4444",
-                    tag: "ZONE 01 // LOCKBIT EXTORTION",
-                  },
-                  {
-                    x: 55,
-                    y: 6,
-                    w: 42,
-                    h: 40,
-                    color: "#F59E0B",
-                    tag: "ZONE 02 // UPI-CRYPTO MULES",
-                  },
-                  {
-                    x: 3,
-                    y: 54,
-                    w: 42,
-                    h: 40,
-                    color: "#8B5CF6",
-                    tag: "ZONE 03 // WASABI COINJOIN",
-                  },
-                  {
-                    x: 55,
-                    y: 54,
-                    w: 42,
-                    h: 40,
-                    color: "#00F0FF",
-                    tag: "ZONE 04 // TOR ONION RELAYS",
-                  },
-                ].map((zone, zi) => (
+                {zones.map((zone, zi) => (
                   <g key={`zone-${zi}`}>
                     {/* Zone Boundary Box */}
                     <rect
