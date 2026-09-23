@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Bell, FileText, Search, Upload, Zap, Loader2, Award, Shield, Cpu } from "lucide-react";
 import { toast } from "sonner";
-import { simulateAttack, uploadSeizedLogs, getPdfReportUrl } from "@/lib/api";
+import { simulateAttack, uploadSeizedLogs, getPdfReportUrl, getCachedCases } from "@/lib/api";
 
 export function TopBar({
   title,
@@ -19,6 +19,30 @@ export function TopBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeCaseId, setActiveCaseId] = useState<string>(() => {
+    const c = getCachedCases();
+    return c && c.length > 0 ? c[0].id : "ACTIVE-LEAD";
+  });
+
+  useEffect(() => {
+    const handleCaseUpdate = (e: any) => {
+      if (e.detail?.job_id) {
+        setActiveCaseId(`CASE-${e.detail.job_id.slice(4, 12).toUpperCase()}`);
+      }
+    };
+    const handleRefresh = () => {
+      const c = getCachedCases();
+      if (c && c.length > 0) {
+        setActiveCaseId(c[0].id);
+      }
+    };
+    window.addEventListener("satoshitrace-case-updated", handleCaseUpdate);
+    window.addEventListener("satoshitrace-refresh", handleRefresh);
+    return () => {
+      window.removeEventListener("satoshitrace-case-updated", handleCaseUpdate);
+      window.removeEventListener("satoshitrace-refresh", handleRefresh);
+    };
+  }, []);
 
   const handleSimulate = async () => {
     try {
@@ -54,7 +78,7 @@ export function TopBar({
   };
 
   const handleDownloadPdf = () => {
-    window.open(getPdfReportUrl("default", "CASE-2026-CBI-0891"), "_blank");
+    window.open(getPdfReportUrl("default", activeCaseId), "_blank");
     toast.info("📄 Generating Section 65B Forensic Evidence Dossier...", {
       description: "ReportLab engine compiling cryptographic SHA-256 chain of custody.",
     });
@@ -137,7 +161,7 @@ export function TopBar({
         {/* Active Case Badge */}
         <div className="hidden md:flex items-center gap-1 rounded border border-[#1C232E] bg-[#0A0E14] px-2 py-1 text-[10px]">
           <span className="text-[#7D8590]">CASE:</span>
-          <span className="font-bold text-[#E6EDF3]">CBI-2026-0471</span>
+          <span className="font-bold text-[#E6EDF3]">{activeCaseId}</span>
         </div>
 
         {/* Examiner ID */}

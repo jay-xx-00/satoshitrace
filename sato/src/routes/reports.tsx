@@ -3,7 +3,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Download, ShieldCheck, Hash, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
-import { getPdfReportUrl, fetchCases, fetchStats, type CaseItem, type GlobalStats } from "@/lib/api";
+import {
+  getPdfReportUrl,
+  fetchCases,
+  fetchStats,
+  getCachedCases,
+  getCachedStats,
+  type CaseItem,
+  type GlobalStats
+} from "@/lib/api";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -18,42 +26,11 @@ export const Route = createFileRoute("/reports")({
   component: EvidenceReportsPage,
 });
 
-const DOSSIERS = [
-  {
-    id: "CASE-2026-CBI-0891",
-    title: "National Cyber Crime Taskforce — LockBit 3.0 Laundering Nexus",
-    date: "24-August-2026 15:30 IST",
-    sha256: "C78921DF883910A49B89104E9281AC7B910481920AF89102B91823901A849201",
-    records: 4671,
-    suspects: 4,
-    syndicates: 7,
-    status: "SEALED // CERTIFIED",
-  },
-  {
-    id: "CASE-2026-ED-0233",
-    title: "Enforcement Directorate — UPI-Crypto Mule Structuring Ring",
-    date: "24-August-2026 12:15 IST",
-    sha256: "9F8381A92B1048C881920DF89104192039BA8219018491029318920183918204",
-    records: 12890,
-    suspects: 12,
-    syndicates: 3,
-    status: "SEALED // CERTIFIED",
-  },
-  {
-    id: "CASE-2026-NCB-0119",
-    title: "Narcotics Control Bureau — Darknet Market Equal-Output CoinJoin",
-    date: "23-August-2026 19:40 IST",
-    sha256: "3189A89102938104E8910294182901AF910283910481920B8918201948192048",
-    records: 3410,
-    suspects: 6,
-    syndicates: 2,
-    status: "SEALED // CERTIFIED",
-  },
-];
-
 export function EvidenceReportsPage() {
-  const [caseList, setCaseList] = useState<CaseItem[]>([]);
-  const [stats, setStats] = useState<GlobalStats | null>(null);
+  const cachedCases = getCachedCases();
+  const cachedStats = getCachedStats();
+  const [caseList, setCaseList] = useState<CaseItem[]>(() => cachedCases || []);
+  const [stats, setStats] = useState<GlobalStats | null>(() => cachedStats || null);
 
   const loadData = async () => {
     try {
@@ -85,7 +62,7 @@ export function EvidenceReportsPage() {
         status: "SEALED // CERTIFIED",
       }));
     }
-    return DOSSIERS;
+    return [];
   }, [caseList, stats]);
 
   const handleDownload = (caseId: string) => {
@@ -119,7 +96,7 @@ export function EvidenceReportsPage() {
             </div>
           </div>
           <button
-            onClick={() => handleDownload(activeDossiers[0]?.id || "CASE-2026-CBI-0891")}
+            onClick={() => handleDownload(activeDossiers[0]?.id || caseList[0]?.id || "CASE-2026-ACTIVE")}
             className="flex items-center gap-1.5 rounded border border-[#39FF88]/40 bg-[#39FF88]/15 px-3 py-1.5 text-xs font-bold text-[#39FF88] hover:bg-[#39FF88]/25 transition-all"
           >
             <Download size={13} />
@@ -128,7 +105,16 @@ export function EvidenceReportsPage() {
         </div>
 
         {/* Dossier Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {activeDossiers.length === 0 ? (
+          <div className="rounded border border-dashed border-[#1C232E] bg-[#0D1117] p-8 text-center text-xs text-[#7D8590]">
+            <ShieldCheck size={28} className="mx-auto mb-2 text-[#7D8590]/50" />
+            <div className="font-bold text-[#E6EDF3] text-sm">No Active Forensic Dossiers Ingested</div>
+            <div className="text-[10px] mt-1 max-w-md mx-auto">
+              Ingest a seized forensic Bitcoin ledger via the top INGEST button to automatically generate Section 65B electronic evidence bundles.
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {activeDossiers.map((d) => (
             <div
               key={d.id}
@@ -193,6 +179,7 @@ export function EvidenceReportsPage() {
             </div>
           ))}
         </div>
+        )}
       </div>
     </AppShell>
   );

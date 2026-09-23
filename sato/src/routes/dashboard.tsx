@@ -5,8 +5,18 @@ import { AppShell } from "@/components/st/AppShell";
 import { CountUp } from "@/components/st/CountUp";
 import { Sparkline } from "@/components/st/Sparkline";
 import { ForensicTacticsMatrix } from "@/components/st/ForensicTacticsMatrix";
-import { cases as mockCases, sparkline } from "@/lib/mock-data";
-import { fetchStats, fetchAlerts, fetchCases, type GlobalStats, type BackendAlert, type CaseItem } from "@/lib/api";
+import { sparkline } from "@/lib/mock-data";
+import {
+  fetchStats,
+  fetchAlerts,
+  fetchCases,
+  getCachedStats,
+  getCachedAlerts,
+  getCachedCases,
+  type GlobalStats,
+  type BackendAlert,
+  type CaseItem
+} from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -34,18 +44,19 @@ const RISK_BADGE: Record<string, string> = {
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<GlobalStats>({
-    total_transactions_analyzed: 4671,
-    high_risk_alerts: 4,
-    syndicates_detected: 7,
-    countries_flagged: 8,
-    active_jobs: 1,
-    system_status: "ONLINE_OFFLINE_READY",
-    verified_false_positive_rate: "3.2%",
+  const cachedStats = getCachedStats();
+  const [stats, setStats] = useState<GlobalStats>(() => cachedStats || {
+    total_transactions_analyzed: 0,
+    high_risk_alerts: 0,
+    syndicates_detected: 0,
+    countries_flagged: 0,
+    active_jobs: 0,
+    system_status: "ONLINE_READY",
+    verified_false_positive_rate: "0.0%",
     model_accuracy: "96.8%",
   });
-  const [alertsList, setAlertsList] = useState<BackendAlert[]>([]);
-  const [caseList, setCaseList] = useState<CaseItem[]>([]);
+  const [alertsList, setAlertsList] = useState<BackendAlert[]>(() => getCachedAlerts() || []);
+  const [caseList, setCaseList] = useState<CaseItem[]>(() => getCachedCases() || []);
 
   const loadData = async () => {
     try {
@@ -163,29 +174,37 @@ export function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1C232E]/40">
-                  {(caseList.length > 0 ? caseList : mockCases).map((c, idx) => (
-                    <tr
-                      key={c.id}
-                      className={`hover:bg-[#161B22] transition-colors ${
-                        idx % 2 === 1 ? "bg-white/[0.015]" : ""
-                      }`}
-                    >
-                      <td className="py-2 px-2 font-bold text-[#E6EDF3]">{c.id}</td>
-                      <td className="py-2 px-2 text-[#7D8590] text-[10px]">{c.filename}</td>
-                      <td className="py-2 px-2 text-[#7D8590] tabular-nums">{c.uploaded}</td>
-                      <td className="py-2 px-2 text-right text-[#E6EDF3] tabular-nums font-medium">
-                        {c.transactions.toLocaleString()}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-[#FF3B3B] tabular-nums">
-                        {c.alerts}
-                      </td>
-                      <td className="py-2 px-2 text-right">
-                        <span className="rounded bg-[#39FF88]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#39FF88] border border-[#39FF88]/30">
-                          {c.status}
-                        </span>
+                  {caseList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-[#7D8590] text-xs">
+                        Awaiting evidence ledger ingestion. Ingest logs via TopBar to seal cases.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    caseList.map((c, idx) => (
+                      <tr
+                        key={c.id}
+                        className={`hover:bg-[#161B22] transition-colors ${
+                          idx % 2 === 1 ? "bg-white/[0.015]" : ""
+                        }`}
+                      >
+                        <td className="py-2 px-2 font-bold text-[#E6EDF3]">{c.id}</td>
+                        <td className="py-2 px-2 text-[#7D8590] text-[10px]">{c.filename}</td>
+                        <td className="py-2 px-2 text-[#7D8590] tabular-nums">{c.uploaded}</td>
+                        <td className="py-2 px-2 text-right text-[#E6EDF3] tabular-nums font-medium">
+                          {c.transactions.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-[#FF3B3B] tabular-nums">
+                          {c.alerts}
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          <span className="rounded bg-[#39FF88]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#39FF88] border border-[#39FF88]/30">
+                            {c.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -206,39 +225,45 @@ export function Dashboard() {
             </div>
 
             <div className="mt-2 space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
-              {alertsList.map((a, idx) => (
-                <div
-                  key={`${a.address}_${idx}`}
-                  onClick={() => navigate({ to: "/" })}
-                  className="group flex items-center justify-between rounded border border-[#1C232E] bg-[#0A0E14] p-2 text-xs hover:border-[#39FF88]/40 cursor-pointer transition-all"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider tabular-nums ${
-                        RISK_BADGE[a.tier] || RISK_BADGE.RED
-                      }`}
-                    >
-                      {a.tier}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="truncate font-mono text-[10.5px] text-[#E6EDF3] group-hover:text-[#39FF88] transition-colors">
-                        {a.address}
-                      </div>
-                      <div className="text-[9px] text-[#7D8590] truncate">
-                        {a.primary_tactic}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <div className="font-mono text-[10.5px] font-bold text-[#FF3B3B] tabular-nums">
-                      {a.risk_score_pct}%
-                    </div>
-                    <div className="text-[9px] text-[#7D8590] tabular-nums">
-                      {a.country} {a.flag}
-                    </div>
-                  </div>
+              {alertsList.length === 0 ? (
+                <div className="p-6 text-center text-[#7D8590] text-xs font-mono">
+                  No high-risk threat leads flagged yet. Ingest an evidence ledger to activate multi-model consensus gate.
                 </div>
-              ))}
+              ) : (
+                alertsList.map((a, idx) => (
+                  <div
+                    key={`${a.address}_${idx}`}
+                    onClick={() => navigate({ to: "/" })}
+                    className="group flex items-center justify-between rounded border border-[#1C232E] bg-[#0A0E14] p-2 text-xs hover:border-[#39FF88]/40 cursor-pointer transition-all"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider tabular-nums ${
+                          RISK_BADGE[a.tier] || RISK_BADGE.RED
+                        }`}
+                      >
+                        {a.tier}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate font-mono text-[10.5px] text-[#E6EDF3] group-hover:text-[#39FF88] transition-colors">
+                          {a.address}
+                        </div>
+                        <div className="text-[9px] text-[#7D8590] truncate">
+                          {a.primary_tactic}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <div className="font-mono text-[10.5px] font-bold text-[#FF3B3B] tabular-nums">
+                        {a.risk_score_pct}%
+                      </div>
+                      <div className="text-[9px] text-[#7D8590] tabular-nums">
+                        {a.country} {a.flag}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

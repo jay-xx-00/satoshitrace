@@ -60,17 +60,130 @@ export interface GraphData {
   }>;
 }
 
+// ── Global in-memory + sessionStorage cache for zero-latency route switching ─
+interface SessionCache {
+  graphData: GraphGnodesResponse | null;
+  stats: GlobalStats | null;
+  cases: CaseItem[] | null;
+  alerts: BackendAlert[] | null;
+  timeline: any[] | null;
+}
+
+function loadFromStorage<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(`sato_${key}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(key: string, data: any) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(`sato_${key}`, JSON.stringify(data));
+  } catch {}
+}
+
+function removeFromStorage(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(`sato_${key}`);
+  } catch {}
+}
+
+const sessionCache: SessionCache = {
+  graphData: loadFromStorage<GraphGnodesResponse>("graphData"),
+  stats: loadFromStorage<GlobalStats>("stats"),
+  cases: loadFromStorage<CaseItem[]>("cases"),
+  alerts: loadFromStorage<BackendAlert[]>("alerts"),
+  timeline: loadFromStorage<any[]>("timeline"),
+};
+
+export function getCachedGraph(): GraphGnodesResponse | null {
+  return sessionCache.graphData || loadFromStorage<GraphGnodesResponse>("graphData");
+}
+
+export function setCachedGraph(data: GraphGnodesResponse) {
+  sessionCache.graphData = data;
+  saveToStorage("graphData", data);
+}
+
+export function getCachedStats(): GlobalStats | null {
+  return sessionCache.stats || loadFromStorage<GlobalStats>("stats");
+}
+
+export function setCachedStats(data: GlobalStats) {
+  sessionCache.stats = data;
+  saveToStorage("stats", data);
+}
+
+export function getCachedCases(): CaseItem[] | null {
+  return sessionCache.cases || loadFromStorage<CaseItem[]>("cases");
+}
+
+export function setCachedCases(data: CaseItem[]) {
+  sessionCache.cases = data;
+  saveToStorage("cases", data);
+}
+
+export function getCachedAlerts(): BackendAlert[] | null {
+  return sessionCache.alerts || loadFromStorage<BackendAlert[]>("alerts");
+}
+
+export function setCachedAlerts(data: BackendAlert[]) {
+  sessionCache.alerts = data;
+  saveToStorage("alerts", data);
+}
+
+export function getCachedTimeline(): any[] | null {
+  return sessionCache.timeline || loadFromStorage<any[]>("timeline");
+}
+
+export function setCachedTimeline(data: any[]) {
+  sessionCache.timeline = data;
+  saveToStorage("timeline", data);
+}
+
+export function clearSessionCache() {
+  sessionCache.graphData = null;
+  sessionCache.stats = null;
+  sessionCache.cases = null;
+  sessionCache.alerts = null;
+  sessionCache.timeline = null;
+  removeFromStorage("graphData");
+  removeFromStorage("stats");
+  removeFromStorage("cases");
+  removeFromStorage("alerts");
+  removeFromStorage("timeline");
+}
+
 export async function fetchStats(): Promise<GlobalStats> {
   const resp = await fetch(`${API_BASE}/stats`);
   if (!resp.ok) throw new Error("Failed to fetch stats");
-  return resp.json();
+  const data = await resp.json();
+  setCachedStats(data);
+  return data;
 }
 
 export async function fetchAlerts(jobId = "default"): Promise<BackendAlert[]> {
   const resp = await fetch(`${API_BASE}/alerts/${jobId}`);
   if (!resp.ok) throw new Error("Failed to fetch alerts");
   const data = await resp.json();
-  return data.alerts || [];
+  const alerts = data.alerts || [];
+  setCachedAlerts(alerts);
+  return alerts;
+}
+
+export async function fetchTimeline(jobId = "default", steps = 5): Promise<any> {
+  const resp = await fetch(`${API_BASE}/timeline/${jobId}?steps=${steps}`);
+  if (!resp.ok) throw new Error("Failed to fetch timeline");
+  const data = await resp.json();
+  if (data.snapshots) {
+    setCachedTimeline(data.snapshots);
+  }
+  return data;
 }
 
 export async function fetchGraph(jobId = "default", focalWallet?: string): Promise<GraphData> {
@@ -90,15 +203,16 @@ export async function fetchExplanation(jobId = "default", wallet: string) {
 export async function simulateAttack() {
   const resp = await fetch(`${API_BASE}/simulate_attack`, { method: "POST" });
   if (!resp.ok) throw new Error("Simulation failed");
+  clearSessionCache();
   return resp.json();
 }
 
 export async function resetSession() {
   const resp = await fetch(`${API_BASE}/reset`, { method: "POST" });
   if (!resp.ok) throw new Error("Reset session failed");
+  clearSessionCache();
   return resp.json();
 }
-
 
 export async function uploadSeizedLogs(file: File) {
   const formData = new FormData();
@@ -111,6 +225,7 @@ export async function uploadSeizedLogs(file: File) {
     const err = await resp.json();
     throw new Error(err.detail || "Upload failed");
   }
+  clearSessionCache();
   return resp.json();
 }
 
@@ -215,7 +330,17 @@ export async function fetchCases(): Promise<CaseItem[]> {
   const resp = await fetch(`${API_BASE}/cases`);
   if (!resp.ok) throw new Error("Failed to fetch cases");
   const data = await resp.json();
-  return data.cases || [];
+  const cases = data.cases || [];
+  setCachedCases(cases);
+  return cases;
+}
+
+export async function fetchGraphGnodes(jobId = "default"): Promise<GraphGnodesResponse> {
+  const resp = await fetch(`${API_BASE}/graph/${jobId}/gnodes`);
+  if (!resp.ok) throw new Error("Failed to fetch graph gnodes");
+  const data: GraphGnodesResponse = await resp.json();
+  setCachedGraph(data);
+  return data;
 }
 
 

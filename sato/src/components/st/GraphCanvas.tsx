@@ -24,8 +24,15 @@ import {
   Move,
 } from "lucide-react";
 import { toast } from "sonner";
-import { gEdges as mockEdges, gNodes as mockNodes, type GNode, type GEdge, type GNodeType } from "@/lib/graph-data";
-import { API_BASE, type GraphZone, type CaseInfo, type GraphGnodesResponse } from "@/lib/api";
+import { type GNode, type GEdge, type GNodeType } from "@/lib/graph-data";
+import {
+  API_BASE,
+  type GraphZone,
+  type CaseInfo,
+  type GraphGnodesResponse,
+  getCachedGraph,
+  fetchGraphGnodes,
+} from "@/lib/api";
 
 export const TYPE_META: Record<
   GNodeType,
@@ -364,13 +371,16 @@ export function GraphCanvas({
   const [traceTrailActive, setTraceTrailActive] = useState(false);
   const [hoverEdge, setHoverEdge] = useState<string | null>(null);
 
-  const [nodes, setNodes] = useState<GNode[]>(mockNodes);
-  const [edges, setEdges] = useState<GEdge[]>(mockEdges);
-  const [zones, setZones] = useState<GraphZone[]>([]);
-  const [caseInfo, setCaseInfo] = useState<CaseInfo | null>(null);
-  const [positions, setPositions] = useState<Record<string, Pos>>({});
-  const [isLive, setIsLive] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const cached = getCachedGraph();
+  const [nodes, setNodes] = useState<GNode[]>(() => cached?.gnodes || []);
+  const [edges, setEdges] = useState<GEdge[]>(() => cached?.gedges || []);
+  const [zones, setZones] = useState<GraphZone[]>(() => cached?.zones || []);
+  const [caseInfo, setCaseInfo] = useState<CaseInfo | null>(() => cached?.case_info || null);
+  const [positions, setPositions] = useState<Record<string, Pos>>(() =>
+    computePositions("constellation", cached?.gnodes || [])
+  );
+  const [isLive, setIsLive] = useState(() => Boolean(cached && cached.gnodes.length > 0));
+  const [loading, setLoading] = useState(() => !cached);
 
   // Dynamic Money Trail computed strictly from active nodes and edges
   const dynamicTrail = useMemo(() => {
@@ -420,25 +430,22 @@ export function GraphCanvas({
 
   /* Load live graph from backend */
   const loadLiveGraph = useCallback(async () => {
-    setLoading(true);
+    if (!getCachedGraph()) {
+      setLoading(true);
+    }
     try {
-      const resp = await fetch(`${API_BASE}/graph/default/gnodes`);
-      if (!resp.ok) throw new Error("Backend offline");
-      const data: GraphGnodesResponse = await resp.json();
+      const data = await fetchGraphGnodes("default");
       if (data.gnodes && data.gnodes.length > 0) {
         setNodes(data.gnodes as GNode[]);
         setEdges(data.gedges as GEdge[]);
-        if (data.zones && data.zones.length > 0) {
-          setZones(data.zones);
-        } else {
-          setZones([]);
-        }
+        setZones(data.zones || []);
         if (data.case_info) {
           setCaseInfo(data.case_info);
           window.dispatchEvent(
             new CustomEvent("satoshitrace-case-updated", { detail: data.case_info })
           );
         }
+        setPositions(computePositions(layoutMode, data.gnodes as GNode[]));
         setIsLive(true);
       }
     } catch {
@@ -446,7 +453,7 @@ export function GraphCanvas({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [layoutMode]);
 
   useEffect(() => {
     loadLiveGraph();
@@ -458,7 +465,7 @@ export function GraphCanvas({
   /* -------------------------------------------------------------------------- */
   /* Multi-Layout Computation Engine with Strict Anti-Collision Pass             */
   /* -------------------------------------------------------------------------- */
-  const computePositions = useCallback((mode: LayoutMode, currentNodes: GNode[]): Record<string, Pos> => {
+  function computePositions(mode: LayoutMode, currentNodes: GNode[]): Record<string, Pos> {
     const posMap: Record<string, Pos> = {};
 
     if (mode === "constellation") {
@@ -758,12 +765,17 @@ export function GraphCanvas({
     }
 
     return posMap;
-  }, []);
+  }
+
+  const handleSwitchLayout = (mode: LayoutMode) => {
+    setLayoutMode(mode);
+    setPositions(computePositions(mode, nodes));
+  };
 
   useEffect(() => {
     const calculated = computePositions(layoutMode, nodes);
     setPositions(calculated);
-  }, [layoutMode, nodes, computePositions]);
+  }, [layoutMode, nodes]);
 
   /* -------------------------------------------------------------------------- */
   /* Cursor-Pinned Precision Zoom & Smooth Pan Engine                           */
@@ -1011,7 +1023,7 @@ export function GraphCanvas({
         <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded border border-[#1C232E]">
           <button
             type="button"
-            onClick={() => setLayoutMode("constellation")}
+            onClick={() => handleSwitchLayout("constellation")}
             className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "constellation"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
@@ -1023,7 +1035,7 @@ export function GraphCanvas({
           </button>
           <button
             type="button"
-            onClick={() => setLayoutMode("flow")}
+            onClick={() => handleSwitchLayout("flow")}
             className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "flow"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
@@ -1035,7 +1047,7 @@ export function GraphCanvas({
           </button>
           <button
             type="button"
-            onClick={() => setLayoutMode("force")}
+            onClick={() => handleSwitchLayout("force")}
             className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "force"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
@@ -1153,41 +1165,55 @@ export function GraphCanvas({
         </button>
       </div>
 
-      {/* Entity Filter Chips (Floating Bottom-Center Bar) */}
+      {/* Unified Bottom Tactical Dock (SATO Status + Entity Filters + Air-Gap + Zoom) */}
       <div
-        className="font-mono absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 shadow-lg backdrop-blur-md"
+        className="font-mono absolute bottom-3 left-4 z-20 flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 shadow-lg backdrop-blur-md max-w-[calc(100%-160px)] overflow-x-auto"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <span className="text-[9px] text-[#7D8590] mr-1 tracking-wider">FILTER:</span>
-        {(
-          [
-            { id: "all", label: `ALL (${nodes.length})` },
-            { id: "suspect", label: `SUSPECTS (${suspectCount})` },
-            { id: "cluster", label: `SYNDICATES (${clusterCount})` },
-            { id: "ip", label: "TOR/IP" },
-            { id: "wallet", label: "WALLETS" },
-          ] as const
-        ).map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilterType(f.id)}
-            className={`rounded px-2 py-0.5 text-[9px] font-mono transition-all ${
-              filterType === f.id
-                ? "bg-[#39FF88]/20 text-[#39FF88] border border-[#39FF88]/40"
-                : "text-[#7D8590] hover:text-[#E6EDF3] hover:bg-[#1C232E]/60"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <span className="flex items-center gap-1.5 font-bold text-[#E6EDF3] text-[10px] shrink-0">
+          <Activity size={12} className="text-[#39FF88]" /> SATO
+        </span>
+        <span className="h-3 w-px bg-[#1C232E] shrink-0" />
+        <span className="text-[9px] text-[#7D8590] tracking-wider shrink-0">FILTER:</span>
+        <div className="flex items-center gap-1 shrink-0">
+          {(
+            [
+              { id: "all", label: `ALL (${nodes.length})` },
+              { id: "suspect", label: `SUSPECTS (${suspectCount})` },
+              { id: "cluster", label: `SYNDICATES (${clusterCount})` },
+              { id: "ip", label: "TOR/IP" },
+              { id: "wallet", label: "WALLETS" },
+            ] as const
+          ).map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilterType(f.id)}
+              className={`rounded px-2 py-0.5 text-[9px] font-mono transition-all ${
+                filterType === f.id
+                  ? "bg-[#39FF88]/20 text-[#39FF88] border border-[#39FF88]/40"
+                  : "text-[#7D8590] hover:text-[#E6EDF3] hover:bg-[#1C232E]/60"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <span className="h-3 w-px bg-[#1C232E] shrink-0 hidden lg:inline" />
+        <span className="text-[#39FF88] text-[9.5px] font-semibold shrink-0 hidden lg:inline">
+          AIR-GAP: SECURE
+        </span>
+        <span className="h-3 w-px bg-[#1C232E] shrink-0" />
+        <span className="tabular-nums font-semibold text-[#E6EDF3] text-[9.5px] shrink-0">
+          ZOOM: {view.s.toFixed(2)}×
+        </span>
       </div>
 
       {/* Directional Transfer Trail Banner */}
       {(traceTrailActive || (selected && selected.type !== "cluster")) && (
         <div
-          className="font-mono absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded border border-[#FF3B3B]/40 bg-[#0D1117] px-4 py-1.5 shadow-xl backdrop-blur-md animate-rise max-w-[calc(100vw-380px)] overflow-x-auto whitespace-nowrap"
+          className="font-mono absolute bottom-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded border border-[#FF3B3B]/40 bg-[#0D1117] px-4 py-1.5 shadow-xl backdrop-blur-md animate-rise max-w-[calc(100vw-380px)] overflow-x-auto whitespace-nowrap"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -1632,22 +1658,14 @@ export function GraphCanvas({
         </svg>
       </div>
 
-      {/* Tactical Status & Telemetry Bar with Zoom Readout */}
-      <div className="font-mono absolute bottom-4 left-4 z-20 flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-1 text-[10px] text-[#7D8590] shadow-lg backdrop-blur-md">
-        <span className="flex items-center gap-1.5 font-bold text-[#E6EDF3]">
-          <Activity size={12} className="text-[#39FF88]" /> SATO // KERNEL V4.2
-        </span>
-        <span className="h-2.5 w-px bg-[#1C232E]" />
-        <span>LAYOUT: <span className="text-[#E6EDF3] font-semibold">{layoutMode.toUpperCase()}</span></span>
-        <span className="h-2.5 w-px bg-[#1C232E]" />
-        <span className="text-[#39FF88] font-semibold">DEFENSE AIR-GAP: SECURE</span>
-        <span className="h-2.5 w-px bg-[#1C232E]" />
-        <span className="flex items-center gap-1">
-          <Move size={10} className="text-[#7D8590]" /> PAN / ZOOM ACTIVE
-        </span>
-        <span className="h-2.5 w-px bg-[#1C232E]" />
-        <span className="tabular-nums font-semibold text-[#E6EDF3]">ZOOM: {view.s.toFixed(2)}×</span>
-      </div>
+      {/* Tactical Loading Overlay (shown only on cold first-time fetch before cache exists) */}
+      {loading && nodes.length === 0 && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#0A0E14]/85 backdrop-blur-sm font-mono text-[#39FF88] pointer-events-none select-none">
+          <RefreshCw size={26} className="animate-spin mb-3 text-[#39FF88]" />
+          <span className="text-xs font-bold tracking-widest uppercase">INGESTING EVIDENCE TOPOLOGY...</span>
+          <span className="text-[10px] text-[#7D8590] mt-1">Calibrating NetworkX clusters & multi-model consensus</span>
+        </div>
+      )}
     </div>
   );
 }

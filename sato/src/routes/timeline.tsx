@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Play, Pause, RotateCcw, Activity, ArrowRight, ShieldAlert, Clock } from "lucide-react";
 import { AppShell } from "@/components/st/AppShell";
-import { API_BASE } from "@/lib/api";
+import { getCachedTimeline, fetchTimeline } from "@/lib/api";
 
 export const Route = createFileRoute("/timeline")({
   head: () => ({
@@ -30,92 +30,40 @@ interface TimelineStep {
   txid?: string;
 }
 
-const DEFAULT_TIMELINE_STEPS: TimelineStep[] = [
-  {
-    step: 1,
-    elapsed: "T+00:00",
-    time: "10:32:15 IST",
-    event: "Ransomware Vault Ingress: LockBit 3.0 affiliate receives ransom deposit",
-    amount: "25.0000 BTC",
-    source: "External P2P / Victim",
-    target: "bc1q_lockbit_exploit_hub_99182",
-    origin: "Origin IP: 185.220.101.44 (Frankfurt Tor Exit Node)",
-    severity: "CRITICAL",
-  },
-  {
-    step: 2,
-    elapsed: "T+00:13",
-    time: "10:32:28 IST",
-    event: "Peeling Chain Hop #1: 2.0 BTC peeled off to cashout mule; 22.9995 BTC forwarded",
-    amount: "22.9995 BTC",
-    source: "bc1q_lockbit_exploit_hub_99182",
-    target: "tx_peel_fa1e // Mule-01",
-    origin: "Origin IP: 185.220.101.52 (Tor Relay)",
-    severity: "HIGH",
-  },
-  {
-    step: 3,
-    elapsed: "T+00:26",
-    time: "10:32:41 IST",
-    event: "Peeling Chain Hop #2: Rapid burst transfer in 13 seconds across European VPS proxy",
-    amount: "21.1590 BTC",
-    source: "tx_peel_fa1e",
-    target: "tx_peel_7b29 // Mule-02",
-    origin: "Origin ASN: AS62005 (Mullvad VPN)",
-    severity: "HIGH",
-  },
-  {
-    step: 4,
-    elapsed: "T+00:47",
-    time: "10:33:02 IST",
-    event: "Wasabi CoinJoin Mixer Ingress: 8 equal-denomination 0.5000 BTC inputs joined",
-    amount: "4.0000 BTC",
-    source: "tx_peel_7b29",
-    target: "Wasabi Whirlpool Nexus",
-    origin: "Entropy fingerprint: 1.94 bits (Anonymity set = 8)",
-    severity: "CRITICAL",
-  },
-  {
-    step: 5,
-    elapsed: "T+01:30",
-    time: "10:33:45 IST",
-    event: "Off-Ramp Liquidation Requisition: Terminating deposit hop detected into Indian exchange KYC vault",
-    amount: "1.8400 BTC",
-    source: "Wasabi Whirlpool Nexus",
-    target: "WazirX KYC Ingress // bc1q_smu",
-    origin: "Flagged for Section 91 CrPC Statutory Freeze Notice",
-    severity: "CRITICAL",
-  },
-];
+function mapSnapshotsToSteps(snapshots: any[]): TimelineStep[] {
+  return snapshots.map((s: any, idx: number) => {
+    const ev = s.recent_events?.[0];
+    return {
+      step: s.step,
+      elapsed: `T+00:${(idx * 15).toString().padStart(2, "0")}`,
+      time: `${s.formatted_time} UTC`,
+      event: ev
+        ? `Temporal Slice #${s.step}: ${ev.tactic} observed on ${ev.txid}`
+        : `Temporal Slice #${s.step}: ${s.tx_count} cumulative transactions verified`,
+      amount: ev?.amount_btc ? `${parseFloat(ev.amount_btc).toFixed(4)} BTC` : `${(idx + 1) * 4.2} BTC`,
+      source: `Hop #${s.step - 1 >= 0 ? s.step - 1 : "Origin"}`,
+      target: `Hop #${s.step}`,
+      origin: `Timestamp: ${s.timestamp} • Cumulative Volume: ${s.tx_count} TXs`,
+      severity: idx === 0 || idx === snapshots.length - 1 ? "CRITICAL" : "HIGH",
+      txid: ev?.txid,
+    };
+  });
+}
 
 export function TimelinePage() {
-  const [steps, setSteps] = useState<TimelineStep[]>(DEFAULT_TIMELINE_STEPS);
+  const cachedSnapshots = getCachedTimeline();
+  const [steps, setSteps] = useState<TimelineStep[]>(() =>
+    cachedSnapshots && cachedSnapshots.length > 0 ? mapSnapshotsToSteps(cachedSnapshots) : []
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
   const loadTimeline = useCallback(() => {
-    fetch(`${API_BASE}/timeline/default?steps=5`)
-      .then((res) => res.json())
+    fetchTimeline("default", 5)
       .then((data) => {
         if (data.snapshots && data.snapshots.length > 0) {
-          const dynamicSteps: TimelineStep[] = data.snapshots.map((s: any, idx: number) => {
-            const ev = s.recent_events?.[0];
-            return {
-              step: s.step,
-              elapsed: `T+00:${(idx * 15).toString().padStart(2, "0")}`,
-              time: `${s.formatted_time} UTC`,
-              event: ev
-                ? `Temporal Slice #${s.step}: ${ev.tactic} observed on ${ev.txid}`
-                : `Temporal Slice #${s.step}: ${s.tx_count} cumulative transactions verified`,
-              amount: ev?.amount_btc ? `${parseFloat(ev.amount_btc).toFixed(4)} BTC` : `${(idx + 1) * 4.2} BTC`,
-              source: `Hop #${s.step - 1 >= 0 ? s.step - 1 : "Origin"}`,
-              target: `Hop #${s.step}`,
-              origin: `Timestamp: ${s.timestamp} • Cumulative Volume: ${s.tx_count} TXs`,
-              severity: idx === 0 || idx === data.snapshots.length - 1 ? "CRITICAL" : "HIGH",
-              txid: ev?.txid,
-            };
-          });
+          const dynamicSteps = mapSnapshotsToSteps(data.snapshots);
           setSteps(dynamicSteps);
         }
       })
@@ -195,13 +143,23 @@ export function TimelinePage() {
             </span>
             <span className="text-[#1C232E]">|</span>
             <span className="rounded bg-[#0A0E14] px-2 py-0.5 text-[10px] text-[#E6EDF3] border border-[#1C232E]">
-              {steps[currentStep - 1]?.time}
+              {steps[currentStep - 1]?.time || "AWAITING DATA"}
             </span>
           </div>
         </div>
 
-        {/* Tactical Scrubber Range Bar */}
-        <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3 space-y-2">
+        {steps.length === 0 ? (
+          <div className="rounded border border-dashed border-[#1C232E] bg-[#0D1117] p-8 text-center text-xs text-[#7D8590]">
+            <Clock size={28} className="mx-auto mb-2 text-[#7D8590]/50" />
+            <div className="font-bold text-[#E6EDF3] text-sm">Awaiting Temporal Evidence Ingestion</div>
+            <div className="text-[10px] mt-1 max-w-md mx-auto">
+              Ingest a seized forensic Bitcoin ledger via the top INGEST button to reconstruct the multi-hop fund flow replay.
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Tactical Scrubber Range Bar */}
+            <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3 space-y-2">
           <div className="flex items-center justify-between text-[10px] text-[#7D8590]">
             <span>INITIAL INGRESS ({steps[0]?.time})</span>
             <span className="text-[#39FF88] font-bold">DRAGGABLE TIME SCRUBBER</span>
@@ -316,6 +274,8 @@ export function TimelinePage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </AppShell>
   );

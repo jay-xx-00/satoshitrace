@@ -3,7 +3,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Search, ShieldAlert, Pin, CheckCircle2, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/st/AppShell";
-import { getPdfReportUrl, fetchAlerts, fetchCases, type BackendAlert, type CaseItem } from "@/lib/api";
+import {
+  getPdfReportUrl,
+  fetchAlerts,
+  fetchCases,
+  getCachedAlerts,
+  getCachedCases,
+  type BackendAlert,
+  type CaseItem
+} from "@/lib/api";
 
 export const Route = createFileRoute("/investigation")({
   head: () => ({
@@ -28,43 +36,35 @@ interface PinnedWallet {
   tactics: string;
 }
 
-const DEFAULT_PINNED: PinnedWallet[] = [
-  {
-    address: "bc1qc7slrfxkknqcq2jhaxxq7f3k2m9x4qz8v2rn0w",
-    label: "LockBit 3.0 Extortion Hub",
-    role: "Primary Ransom Ingress",
-    volume: "412.80 BTC",
-    risk: "CRITICAL",
-    pinnedAt: "24-Aug-2026 14:10 IST",
-    tactics: "Peeling Chain (8 hops) • Tor Exit Relay",
-  },
-  {
-    address: "bc1qh8x7ekkm5x3ncw2p9dl4vv0shq2m6tzz8yg7ke",
-    label: "Mule Account Structuring Vault",
-    role: "P2P Cashout Conduit",
-    volume: "88.20 BTC",
-    risk: "HIGH",
-    pinnedAt: "24-Aug-2026 14:22 IST",
-    tactics: "Smurfing / Sub-threshold deposits",
-  },
-  {
-    address: "3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5",
-    label: "Wasabi CoinJoin Exit Node",
-    role: "Mixer Off-Ramp",
-    volume: "150.00 BTC",
-    risk: "HIGH",
-    pinnedAt: "24-Aug-2026 14:35 IST",
-    tactics: "Equal-output CoinJoin mixing",
-  },
-];
-
 export function InvestigationPage() {
   const [query, setQuery] = useState("");
-  const [pinned, setPinned] = useState<PinnedWallet[]>(DEFAULT_PINNED);
-  const [notes, setNotes] = useState(
-    `CASE SUMMARY: Operation Active Lead\n- Awaiting forensic evidence ledger ingestion.\n- Statutory freeze notice under Section 91 CrPC ready for exchange compliance.\n- Section 65B IT Act Certificate generated and hash-verified.`
-  );
-  const [activeCase, setActiveCase] = useState<CaseItem | null>(null);
+  const cachedAlerts = getCachedAlerts();
+  const cachedCases = getCachedCases();
+  const [activeCase, setActiveCase] = useState<CaseItem | null>(() => cachedCases?.[0] || null);
+
+  const [pinned, setPinned] = useState<PinnedWallet[]>(() => {
+    if (cachedAlerts && cachedAlerts.length > 0) {
+      return cachedAlerts.slice(0, 4).map((a) => ({
+        address: a.address,
+        label: a.cluster_name || "Correlated Entity",
+        role: a.tier === "RED" ? "Primary Threat Lead" : "Correlated Counterparty",
+        volume: `${a.total_btc_moved.toFixed(4)} BTC`,
+        risk: (a.tier === "RED" ? "CRITICAL" : a.tier === "ORANGE" ? "HIGH" : "MEDIUM") as any,
+        pinnedAt: "Live Active Session",
+        tactics: `${a.primary_tactic} • ${a.country} (${a.asn})`,
+      }));
+    }
+    return [];
+  });
+
+  const [notes, setNotes] = useState(() => {
+    if (cachedAlerts && cachedAlerts.length > 0) {
+      const top = cachedAlerts[0];
+      const fname = cachedCases && cachedCases.length > 0 ? cachedCases[0].filename : "Ingested Dataset";
+      return `CASE SUMMARY: ${fname}\n- Lead suspect: ${top.address} (${top.risk_score_pct}% Risk • ${top.models_agreed}/3 Consensus).\n- Detected tactics: ${top.primary_tactic}.\n- Origin infrastructure: ${top.flag} ${top.country} via ${top.asn} (${top.is_tor ? "Tor Exit" : top.is_vpn ? "VPN Proxy" : "Direct IP"}).\n- Volume moved: ${top.total_btc_moved} BTC across ${top.tx_count} transactions.\n- Statutory freeze notice under Section 91 CrPC drafted for flagged addresses.\n- Cryptographic SHA-256 chain of custody locked under Section 65B IT Act.`;
+    }
+    return `CASE SUMMARY: Operation Active Lead\n- Awaiting forensic evidence ledger ingestion.\n- Statutory freeze notice under Section 91 CrPC ready for exchange compliance.\n- Section 65B IT Act Certificate generated and hash-verified.`;
+  });
 
   const loadData = async () => {
     try {
@@ -154,14 +154,21 @@ export function InvestigationPage() {
   };
 
   const handleExportCase = () => {
-    window.open(getPdfReportUrl("default", "CASE-2026-CBI-0891"), "_blank");
+    window.open(getPdfReportUrl("default", activeCase?.id || "CASE-2026-ACTIVE"), "_blank");
     toast.success("Exporting Court-Admissible Case Dossier Bundle", {
       description: "Section 65B certificate + SHA-256 integrity hash + Analyst notes attached.",
     });
   };
 
   return (
-    <AppShell title="Investigation Workbench" breadcrumb="HQ / ACTIVE CASE DOSSIER / CBI-2026-0471">
+    <AppShell
+      title="Investigation Workbench"
+      breadcrumb={
+        activeCase
+          ? `HQ / ACTIVE CASE DOSSIER / ${activeCase.id} / ${activeCase.filename.toUpperCase()}`
+          : "HQ / ACTIVE FORENSIC CASE DOSSIER"
+      }
+    >
       <div className="h-full overflow-y-auto p-4 space-y-3 font-mono select-none">
         {/* Case Header Banner */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-[#1C232E] bg-[#0D1117] p-3">
@@ -172,7 +179,7 @@ export function InvestigationPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
-                  OPERATION BLACKRIVER — CASE CBI-2026-0471
+                  {activeCase ? `CASE ${activeCase.id} — ${activeCase.filename.toUpperCase()}` : "ACTIVE FORENSIC CASE DOSSIER"}
                 </h2>
                 <span className="rounded bg-[#FF3B3B]/15 px-2 py-0.2 text-[9px] font-bold text-[#FF3B3B] border border-[#FF3B3B]/30">
                   PRIORITY TASKFORCE
@@ -208,7 +215,9 @@ export function InvestigationPage() {
             <span className="font-bold text-[#39FF88] uppercase tracking-wider">
               CROSS-LEDGER IDENTIFIER QUERY & CORRELATION ENGINE
             </span>
-            <span className="text-[#7D8590] tabular-nums">4,671 TRANSACTIONS INDEXED</span>
+            <span className="text-[#7D8590] tabular-nums">
+              {activeCase ? `${activeCase.transactions.toLocaleString()} TRANSACTIONS INDEXED` : "AWAITING EVIDENCE INGESTION"}
+            </span>
           </div>
 
           <form onSubmit={handleSearch} className="flex gap-2">
@@ -289,38 +298,48 @@ export function InvestigationPage() {
             </div>
 
             <div className="space-y-2">
-              {pinned.map((p, idx) => (
-                <div
-                  key={`${p.address}_${idx}`}
-                  className="rounded border border-[#1C232E] bg-[#0A0E14] p-2.5 space-y-1.5 hover:border-[#39FF88]/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-xs text-[#E6EDF3]">{p.label}</span>
-                      <span className="text-[10px] text-[#7D8590] ml-2">({p.role})</span>
-                    </div>
-                    <span
-                      className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
-                        p.risk === "CRITICAL"
-                          ? "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/30"
-                          : "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/30"
-                      }`}
-                    >
-                      {p.risk}
-                    </span>
-                  </div>
-
-                  <div className="font-mono text-[10.5px] text-[#7D8590] break-all bg-[#0D1117] p-1.5 rounded border border-[#1C232E]">
-                    {p.address}
-                  </div>
-
-                  <div className="flex items-center justify-between text-[9.5px] text-[#7D8590] pt-1 border-t border-[#1C232E]">
-                    <span>VOLUME: <strong className="text-[#E6EDF3] tabular-nums">{p.volume}</strong></span>
-                    <span>TACTIC: <strong className="text-[#E6EDF3]">{p.tactics}</strong></span>
-                    <span>PINNED: <strong className="text-[#7D8590] tabular-nums">{p.pinnedAt}</strong></span>
+              {pinned.length === 0 ? (
+                <div className="rounded border border-dashed border-[#1C232E] bg-[#0A0E14] p-6 text-center text-xs text-[#7D8590]">
+                  <Pin size={18} className="mx-auto mb-2 text-[#7D8590]/50" />
+                  <div className="font-bold text-[#E6EDF3]">No Entities Pinned In Active Session</div>
+                  <div className="text-[10px] mt-1">
+                    Query an identifier above or select a suspect node in Graph Explorer to pin it to this case file.
                   </div>
                 </div>
-              ))}
+              ) : (
+                pinned.map((p, idx) => (
+                  <div
+                    key={`${p.address}_${idx}`}
+                    className="rounded border border-[#1C232E] bg-[#0A0E14] p-2.5 space-y-1.5 hover:border-[#39FF88]/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-xs text-[#E6EDF3]">{p.label}</span>
+                        <span className="text-[10px] text-[#7D8590] ml-2">({p.role})</span>
+                      </div>
+                      <span
+                        className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
+                          p.risk === "CRITICAL"
+                            ? "bg-[#FF3B3B]/15 text-[#FF3B3B] border border-[#FF3B3B]/30"
+                            : "bg-[#FF9F1C]/15 text-[#FF9F1C] border border-[#FF9F1C]/30"
+                        }`}
+                      >
+                        {p.risk}
+                      </span>
+                    </div>
+
+                    <div className="font-mono text-[10.5px] text-[#7D8590] break-all bg-[#0D1117] p-1.5 rounded border border-[#1C232E]">
+                      {p.address}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9.5px] text-[#7D8590] pt-1 border-t border-[#1C232E]">
+                      <span>VOLUME: <strong className="text-[#E6EDF3] tabular-nums">{p.volume}</strong></span>
+                      <span>TACTIC: <strong className="text-[#E6EDF3]">{p.tactics}</strong></span>
+                      <span>PINNED: <strong className="text-[#7D8590] tabular-nums">{p.pinnedAt}</strong></span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
