@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import gsap from "gsap";
-import { Terminal, Lock, CheckCircle2, Shield, FastForward, Activity } from "lucide-react";
+import { Terminal, Shield, FastForward, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface SatoBootProps {
   onComplete: () => void;
@@ -16,13 +16,47 @@ const STAGES = [
 
 export function SatoBootSequence({ onComplete }: SatoBootProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isExitingRef = useRef(false);
+  const autoLoginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentStage, setCurrentStage] = useState(0);
   const [progress, setProgress] = useState(0);
   const [hexStream, setHexStream] = useState("0x7F4A9B... INITIALIZING");
   const [logs, setLogs] = useState<string[]>([]);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
 
+  const handleExit = useCallback(() => {
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+    if (autoLoginTimerRef.current) clearTimeout(autoLoginTimerRef.current);
+
+    if (containerRef.current) {
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        scale: 0.985,
+        duration: 0.4,
+        ease: "power2.inOut",
+        onComplete: () => {
+          onComplete();
+        },
+      });
+    } else {
+      onComplete();
+    }
+  }, [onComplete]);
+
+  // GSAP Entrance animation on mount
   useEffect(() => {
-    // Generate streaming SHA-256 hex bits
+    if (containerRef.current) {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, scale: 1.01 },
+        { opacity: 1, scale: 1, duration: 0.35, ease: "power2.out" }
+      );
+    }
+  }, []);
+
+  // Live Hex stream generator
+  useEffect(() => {
     const hexChars = "0123456789ABCDEF";
     const interval = setInterval(() => {
       let str = "";
@@ -35,12 +69,15 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Diagnostic boot sequence and staged log messages
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) {
       setProgress(100);
       setCurrentStage(5);
-      return;
+      setIsAutoLoggingIn(true);
+      const timer = setTimeout(() => handleExit(), 300);
+      return () => clearTimeout(timer);
     }
 
     const logMessages = [
@@ -53,7 +90,9 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
       "[1.120] Partitioning 7 criminal syndicate clusters (Cluster #4 BlackRiver isolated)",
       "[1.450] Pre-filtering 500+ Indian & global exchange hot wallets (CoinDCX, WazirX, Binance)",
       "[1.780] Consensus Gate locked: 4 critical threat leads prioritized (<3.2% FPR validated)",
-      "[2.100] SATO OS Forensic Engine operational. Handing control to command console.",
+      "[2.100] SATO OS Forensic Engine operational. Examiner credentials authenticated.",
+      "[2.240] Access Token locked: EXAMINER #8412 [CBI / ED FORENSICS] — LEVEL 1 CLEARANCE",
+      "[2.380] Auto-login authenticated. Launching SatoshiTrace Command Console...",
     ];
 
     let logIndex = 0;
@@ -68,22 +107,31 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
         if (logIndex === 4) setCurrentStage(2);
         if (logIndex === 6) setCurrentStage(3);
         if (logIndex === 8) setCurrentStage(4);
-        if (logIndex === 10) setCurrentStage(5);
+        if (logIndex >= 10) setCurrentStage(5);
       } else {
         clearInterval(logInterval);
       }
-    }, 220);
+    }, 180);
 
-    // Smooth progress counter
+    // Smooth progress counter (approx 2.2 seconds total boot time)
     const startTime = performance.now();
-    const duration = 2400;
+    const duration = 2200;
 
+    let hasFinished = false;
     const animateProgress = (now: number) => {
       const elapsed = now - startTime;
       const pct = Math.min(100, Math.round((elapsed / duration) * 100));
       setProgress(pct);
       if (pct < 100) {
         requestAnimationFrame(animateProgress);
+      } else if (!hasFinished) {
+        hasFinished = true;
+        setCurrentStage(5);
+        setIsAutoLoggingIn(true);
+        // AUTO-LOGIN: Automatically transition to command console after 750ms
+        autoLoginTimerRef.current = setTimeout(() => {
+          handleExit();
+        }, 750);
       }
     };
 
@@ -92,24 +140,26 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
     return () => {
       clearInterval(logInterval);
       cancelAnimationFrame(rafId);
+      if (autoLoginTimerRef.current) clearTimeout(autoLoginTimerRef.current);
     };
-  }, []);
+  }, [handleExit]);
 
-  // Keyboard shortcut: ESC or Space to skip
+  // Keyboard shortcut: ESC, Enter, or Space to skip/enter immediately
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === " ") {
-        onComplete();
+      if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        handleExit();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onComplete]);
+  }, [handleExit]);
 
   return (
     <div
       ref={containerRef}
-      className="crt-boot-screen fixed inset-0 z-50 flex flex-col justify-between bg-[#0A0E14] p-6 text-[#E6EDF3] font-mono select-none"
+      className="crt-boot-screen fixed inset-0 z-[9999] w-screen h-screen flex flex-col justify-between bg-[#0A0E14] p-6 text-[#E6EDF3] font-mono select-none"
     >
       {/* Top Telemetry Header */}
       <div className="flex items-center justify-between border-b border-[#1C232E] pb-3 text-xs">
@@ -127,7 +177,7 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
         <div className="flex items-center gap-4 text-[#7D8590] text-[11px]">
           <span>CMOS TIMESTAMP: {new Date().toISOString()}</span>
           <button
-            onClick={onComplete}
+            onClick={handleExit}
             className="flex items-center gap-1.5 border border-[#1C232E] bg-[#161B22] px-2.5 py-1 text-[#39FF88] hover:bg-[#1C232E] active:scale-95 transition-all text-[10.5px]"
           >
             <FastForward size={12} />
@@ -149,7 +199,7 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
           </div>
 
           <div className="space-y-3">
-            {STAGES.map((s, idx) => {
+            {STAGES.map((s) => {
               const isPassed = currentStage >= s.id;
               const isCurrent = currentStage === s.id - 1;
 
@@ -172,12 +222,13 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[10px] text-[#7D8590] tabular-nums">{s.latency}</span>
                       <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 border"
+                        className="text-[10px] font-bold px-1.5 py-0.5 border flex items-center gap-1"
                         style={{
                           borderColor: isPassed ? "#39FF88" : "#1C232E",
                           color: isPassed ? "#39FF88" : "#7D8590",
                         }}
                       >
+                        {isPassed && <CheckCircle2 size={10} />}
                         {isPassed ? s.status : "TESTING"}
                       </span>
                     </div>
@@ -202,7 +253,7 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
             {logs.map((log, idx) => (
               <div key={idx} className="leading-relaxed">
                 <span className="text-[#39FF88]">&gt; </span>
-                <span className={log.includes("[PASS]") || log.includes("[MATCH]") ? "text-[#E6EDF3]" : "text-[#7D8590]"}>
+                <span className={log.includes("[PASS]") || log.includes("[MATCH]") || log.includes("AUTHENTICATED") || log.includes("EXAMINER") ? "text-[#E6EDF3]" : "text-[#7D8590]"}>
                   {log}
                 </span>
               </div>
@@ -222,7 +273,15 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
       {/* Bottom Progress Bar & Launch Bar */}
       <div className="border-t border-[#1C232E] pt-3 max-w-6xl w-full mx-auto">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-[#7D8590]">INITIALIZATION PROGRESS</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[#7D8590]">INITIALIZATION PROGRESS</span>
+            {isAutoLoggingIn && (
+              <span className="text-[#39FF88] text-[11px] font-bold flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#39FF88] animate-ping" />
+                <span>EXAMINER #8412 AUTHENTICATED // AUTO-CONNECTING...</span>
+              </span>
+            )}
+          </div>
           <span className="text-[#39FF88] font-bold tabular-nums">{progress}%</span>
         </div>
 
@@ -233,16 +292,17 @@ export function SatoBootSequence({ onComplete }: SatoBootProps) {
           />
         </div>
 
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
           <span className="text-[10px] text-[#7D8590]">
             COMPLIANCE: INDIAN EVIDENCE ACT SEC 65B(2) • BNSS 2023 SEC 94
           </span>
           {progress >= 100 && (
             <button
-              onClick={onComplete}
-              className="px-4 py-1.5 bg-[#39FF88] text-[#0A0E14] font-bold text-xs hover:bg-[#32e67a] active:scale-95 transition-all shadow-md animate-pulse"
+              onClick={handleExit}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#39FF88] text-[#0A0E14] font-bold text-xs hover:bg-[#32e67a] active:scale-95 transition-all shadow-md animate-pulse cursor-pointer"
             >
-              PROCEED TO COMMAND CONSOLE →
+              <span>ENTER COMMAND CONSOLE NOW</span>
+              <ArrowRight size={13} />
             </button>
           )}
         </div>

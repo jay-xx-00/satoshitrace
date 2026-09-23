@@ -176,7 +176,11 @@
 /* ── Scoped CRT Scanline Overlay (Boot Screen Only) ───────────── */
 
 .crt-boot-screen {
-  position: relative;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
   overflow: hidden;
 }
 

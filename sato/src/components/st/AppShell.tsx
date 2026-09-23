@@ -57,9 +57,11 @@ export function AppShell({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0A0E14] text-[#E6EDF3]">
-      {/* SATO OS Forensic Kernel Diagnostic Boot */}
+      {/* SATO OS Forensic Kernel Diagnostic Boot (Full Screen Overlay) */}
       {showSato && (
-        <SatoBootSequence onComplete={() => setShowSato(false)} />
+        <div className="fixed inset-0 z-[9999] w-screen h-screen overflow-hidden bg-[#0A0E14]">
+          <SatoBootSequence onComplete={() => setShowSato(false)} />
+        </div>
       )}
 
       {/* 2-Minute Winning Demo Tour Modal */}
