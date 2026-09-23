@@ -24,6 +24,7 @@ interface Message {
 }
 
 const QUICK_CHIPS = [
+  { label: "🦙 Ask Ollama LLM", query: "Explain how Bitcoin transaction peeling chains operate and how investigators detect them." },
   { label: "🔍 Explain top suspect", query: "Explain the top suspect wallet and its risk factors" },
   { label: "⛓️ Peeling chain?", query: "What is a peeling chain attack?" },
   { label: "⚖️ 3.2% FPR defense", query: "Explain the false positive rate and how 3.2% FPR is achieved" },
@@ -185,15 +186,16 @@ export function SatoshiCopilot() {
   const sourceLabel = (source?: string) => {
     if (!source || source === "loading") return null;
     if (source.startsWith("ollama:")) {
+      const model = source.split(":")[1] || "LLM";
       return (
-        <span className="inline-flex items-center gap-1 text-[8px] text-emerald-400 opacity-70">
-          <Wifi size={7} /> {source.split(":")[1]}
+        <span className="inline-flex items-center gap-1 rounded bg-[#39FF88]/15 px-1.5 py-0.2 text-[8px] font-bold text-[#39FF88] border border-[#39FF88]/30">
+          <Wifi size={8} className="text-[#39FF88]" /> Ollama: {model}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 text-[8px] text-muted-foreground opacity-60">
-        <Cpu size={7} /> SATO NLG
+      <span className="inline-flex items-center gap-1 rounded bg-[#1C232E] px-1.5 py-0.2 text-[8px] text-[#7D8590] border border-[#1C232E]">
+        <Cpu size={8} /> SATO Heuristic Engine
       </span>
     );
   };
@@ -206,7 +208,9 @@ export function SatoshiCopilot() {
           onClick={() => {
             setIsOpen(true);
             toast.info("⚡ SATO AI Forensic Agent Active", {
-              description: "Offline intelligence engine ready.",
+              description: ollamaInfo.online
+                ? `Connected to local ${selectedModel || ollamaInfo.active_model} neural model.`
+                : "Offline intelligence engine ready.",
             });
           }}
           className="group relative flex items-center gap-2.5 rounded border border-[#1C232E] bg-[#0D1117]/95 px-3 py-2 shadow-xl backdrop-blur-md hover:border-[#39FF88]/50 active:scale-95 transition-all"
@@ -225,7 +229,18 @@ export function SatoshiCopilot() {
               <Sparkles size={10} className="text-[#39FF88]" />
             </div>
             <div className="text-[9px] text-[#7D8590]">
-              {backendOnline ? "AIR-GAPPED AGENT" : "127.0.0.1 READY"}
+              {backendOnline ? (
+                ollamaInfo.online ? (
+                  <span className="text-[#39FF88] font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] animate-pulse" />
+                    OLLAMA: {selectedModel || ollamaInfo.active_model}
+                  </span>
+                ) : (
+                  "AIR-GAPPED AGENT"
+                )
+              ) : (
+                "127.0.0.1 READY"
+              )}
             </div>
           </div>
         </button>
@@ -249,15 +264,36 @@ export function SatoshiCopilot() {
                 </div>
                 <div className="flex items-center gap-2 text-[9px] text-[#7D8590] mt-0.5">
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${backendOnline ? (ollamaInfo.online ? "bg-[#39FF88]" : "bg-[#39FF88]") : "bg-[#FF3B3B]"}`}
+                    className={`h-1.5 w-1.5 rounded-full ${backendOnline ? (ollamaInfo.online ? "bg-[#39FF88] shadow-[0_0_6px_#39FF88]" : "bg-[#39FF88]") : "bg-[#FF3B3B]"}`}
                   />
-                  <span>
-                    {backendOnline
-                      ? ollamaInfo.online
-                        ? `Ollama: ${selectedModel || ollamaInfo.active_model}`
-                        : "SATO Offline NLG Engine"
-                      : "Backend Offline"}
-                  </span>
+                  {backendOnline ? (
+                    ollamaInfo.online && ollamaInfo.models.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[#39FF88] font-bold">Ollama:</span>
+                        <select
+                          value={selectedModel || ollamaInfo.active_model}
+                          onChange={(e) => {
+                            setSelectedModel(e.target.value);
+                            toast.success(`Active Model: ${e.target.value}`);
+                          }}
+                          className="rounded bg-[#161B22] border border-[#1C232E] px-1 py-0 text-[8.5px] text-[#39FF88] font-bold focus:outline-none focus:border-[#39FF88]"
+                        >
+                          {ollamaInfo.models.map((m) => (
+                            <option key={m} value={m} className="bg-[#0D1117] text-[#E6EDF3]">
+                              {m} (Local LLM)
+                            </option>
+                          ))}
+                          <option value="sato_nlg_engine" className="bg-[#0D1117] text-[#7D8590]">
+                            SATO Heuristic NLG
+                          </option>
+                        </select>
+                      </div>
+                    ) : (
+                      <span>SATO Offline NLG Engine</span>
+                    )
+                  ) : (
+                    <span>Backend Offline</span>
+                  )}
                   {backendOnline && (
                     <span className="text-[#7D8590]/50">• 127.0.0.1:8000</span>
                   )}
@@ -283,6 +319,44 @@ export function SatoshiCopilot() {
               </button>
             </div>
           </div>
+
+          {/* Ollama Status Strip */}
+          {ollamaInfo.online ? (
+            <div className="px-3 py-1 bg-[#39FF88]/10 border-b border-[#39FF88]/20 text-[9px] text-[#39FF88] flex items-center justify-between shrink-0">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#39FF88] animate-pulse" />
+                <span>Ollama Neural Engine Active: <strong>{selectedModel || ollamaInfo.active_model}</strong> (100% Offline)</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSend("Explain how Bitcoin transaction peeling chains operate in crypto forensics")}
+                disabled={isThinking}
+                className="text-[8.5px] text-[#39FF88] hover:underline font-bold"
+              >
+                Test Prompt →
+              </button>
+            </div>
+          ) : (
+            <div className="px-3 py-1.5 bg-[#FF9F1C]/10 border-b border-[#FF9F1C]/30 text-[9px] text-[#FF9F1C] flex items-center justify-between shrink-0">
+              <span className="flex items-center gap-1">
+                <span>⚠️ Ollama offline. Run:</span>
+                <code className="bg-[#0A0E14] px-1 py-0.2 rounded text-[#E6EDF3] border border-[#1C232E]">ollama serve</code>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  fetchOllamaStatus().then((info) => {
+                    setOllamaInfo(info);
+                    if (info.online) toast.success(`Ollama connected: ${info.active_model}`);
+                    else toast.info("Ollama not yet detected on port 11434.");
+                  });
+                }}
+                className="underline hover:text-[#E6EDF3] font-bold"
+              >
+                Check Status
+              </button>
+            </div>
+          )}
 
           {/* Quick chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto p-2 border-b border-[#1C232E] bg-[#0A0E14] shrink-0">

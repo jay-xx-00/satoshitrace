@@ -18,7 +18,12 @@ export function AppShell({
   aside?: ReactNode;
 }) {
   const [showSato, setShowSato] = useState(false);
-  const [showTour, setShowTour] = useState(false);
+  const [showTour, setShowTour] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("satoshitrace-tour-active") === "true";
+    }
+    return false;
+  });
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   useEffect(() => {
@@ -31,7 +36,11 @@ export function AppShell({
 
     // Global custom event listeners
     const handleOpenSato = () => setShowSato(true);
-    const handleOpenTour = () => setShowTour(true);
+    const handleOpenTour = () => {
+      sessionStorage.setItem("satoshitrace-tour-active", "true");
+      sessionStorage.setItem("satoshitrace-tour-step", "0");
+      setShowTour(true);
+    };
     const handleOpenCmdK = () => setShowCommandPalette(true);
 
     window.addEventListener("satoshitrace-open-sato", handleOpenSato);
@@ -66,7 +75,13 @@ export function AppShell({
 
       {/* 2-Minute Winning Demo Tour Modal */}
       {showTour && (
-        <JudgesTour onClose={() => setShowTour(false)} />
+        <JudgesTour
+          onClose={() => {
+            sessionStorage.removeItem("satoshitrace-tour-active");
+            sessionStorage.removeItem("satoshitrace-tour-step");
+            setShowTour(false);
+          }}
+        />
       )}
 
       {/* Global Terminal Command Palette (⌘K) */}
@@ -82,7 +97,11 @@ export function AppShell({
           title={title}
           breadcrumb={breadcrumb}
           onOpenSato={() => setShowSato(true)}
-          onOpenTour={() => setShowTour(true)}
+          onOpenTour={() => {
+            sessionStorage.setItem("satoshitrace-tour-active", "true");
+            sessionStorage.setItem("satoshitrace-tour-step", "0");
+            setShowTour(true);
+          }}
           onOpenCommandPalette={() => setShowCommandPalette(true)}
         />
         <div className="flex min-h-0 flex-1 bg-[#0A0E14]">
