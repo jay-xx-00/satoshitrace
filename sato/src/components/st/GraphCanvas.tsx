@@ -143,9 +143,9 @@ function NodeShape({
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Scaled dimensions
+  // Precision forensic dimensions (compact, non-colliding footprint)
   const size =
-    node.type === "cluster" ? 72 : node.type === "suspect" ? 52 : node.type === "ip" ? 38 : 32;
+    node.type === "cluster" ? 44 : node.type === "suspect" ? 32 : node.type === "ip" ? 26 : 22;
 
   const shape =
     node.type === "ip"
@@ -166,12 +166,8 @@ function NodeShape({
     }
   };
 
-  // Intelligent Anti-Collision Label Placement:
-  // 1. Cluster Hubs: Always place banner BELOW the hub icon.
-  // 2. Suspect Nodes: ALWAYS place badge ABOVE the node icon (bottom-full mb-2).
-  //    This guarantees threat badges sit in the clear sky above, NEVER overlapping the cluster building icon!
-  // 3. Member Nodes: If above the cluster hub center, place label ABOVE.
-  //    If below the cluster hub center, place label BELOW.
+  // Anti-Collision Label Placement:
+  // Cluster hubs: label below. Suspects: label above. Member nodes: dynamically place away from hub.
   const isCluster = node.type === "cluster";
   const isSuspect = node.type === "suspect";
   const isUpperHemisphere = pos.y < 34 || (pos.y > 48 && pos.y < 72);
@@ -188,7 +184,6 @@ function NodeShape({
         active ? "z-40" : "",
         dim ? "opacity-15 scale-95" : "opacity-100 scale-100",
         inPath ? "scale-105 z-30" : "",
-        "transition-all duration-300 ease-out",
       ].join(" ")}
       style={{
         left: `${pos.x}%`,
@@ -202,7 +197,7 @@ function NodeShape({
       {/* Interactive Terminal HUD Tooltip */}
       {isHovered && (
         <div
-          className="pointer-events-auto absolute bottom-full left-1/2 z-50 mb-3 -translate-x-1/2 w-64 rounded border border-[#1C232E] bg-[#0D1117] p-3 shadow-2xl animate-rise"
+          className="pointer-events-auto absolute bottom-full left-1/2 z-50 mb-3 -translate-x-1/2 w-64 rounded border border-[#1C232E] bg-[#0D1117] p-3 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between pb-1.5 border-b border-[#1C232E]">
@@ -255,43 +250,29 @@ function NodeShape({
 
       {/* Main Node Visual Plate */}
       <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-        {/* Suspect Pulsing Radar Threat Aura & Expanding Sonar Shockwaves */}
+        {/* Suspect Static Double-Ring (Clean, crisp, no vibrating animation) */}
         {node.type === "suspect" && (
-          <>
-            <span
-              className="animate-ping pointer-events-none absolute -inset-2 rounded-full border-2 opacity-65 duration-1000"
-              style={{ borderColor: "#FF3B3B" }}
-            />
-            <span
-              className="animate-pulse pointer-events-none absolute -inset-4 rounded-full border border-[#FF3B3B]/40 duration-700"
-            />
-            <span
-              className="animate-spin-slow pointer-events-none absolute rounded-full border border-dashed"
-              style={{
-                inset: -9,
-                borderColor: "color-mix(in oklab, var(--critical) 85%, transparent)",
-              }}
-            />
-          </>
+          <span
+            className="pointer-events-none absolute -inset-1 rounded-full border border-[#FF3B3B]/60"
+          />
         )}
 
         {/* Selected / In-Path Active Reticle */}
         {(active || inPath) && (
           <span
-            className={`pointer-events-none absolute rounded-full ring-2 ring-offset-4 ring-offset-black/90 ${
+            className={`pointer-events-none absolute rounded-full ring-2 ring-offset-2 ring-offset-black/90 ${
               node.type === "suspect"
-                ? "ring-critical shadow-[0_0_25px_var(--critical)]"
-                : "ring-signal shadow-[0_0_20px_var(--signal)]"
+                ? "ring-[#FF3B3B] shadow-[0_0_12px_#FF3B3B]"
+                : "ring-[#39FF88] shadow-[0_0_10px_#39FF88]"
             }`}
-            style={{ inset: -10 }}
+            style={{ inset: -4 }}
           />
         )}
 
-        {/* Core Double-Bezel Node Plate */}
+        {/* Core Clean Node Plate */}
         <span
           className={[
-            "grid h-full w-full place-items-center border backdrop-blur-md transition-all duration-200 group-hover:scale-115 shadow-xl",
-            node.type === "suspect" ? "animate-breathe-red" : "",
+            "grid h-full w-full place-items-center border backdrop-blur-md transition-transform duration-150 group-hover:scale-110",
             shape ? "" : "rounded-full",
           ].join(" ")}
           style={{
@@ -300,72 +281,59 @@ function NodeShape({
             color: tint,
             background:
               node.type === "cluster"
-                ? `radial-gradient(circle, color-mix(in oklab, ${color} 30%, transparent), oklch(0.18 0.01 250 / 0.9))`
+                ? `radial-gradient(circle, color-mix(in oklab, ${color} 25%, transparent), #0D1117)`
                 : node.type === "suspect"
-                  ? `radial-gradient(circle, color-mix(in oklab, var(--critical) 40%, transparent), oklch(0.16 0.01 250))`
-                  : `color-mix(in oklab, ${tint} 18%, oklch(0.18 0.01 250))`,
-            boxShadow:
-              node.type === "cluster"
-                ? `0 0 35px -2px ${color}`
-                : node.type === "suspect"
-                  ? `0 0 25px 0px var(--critical)`
-                  : inPath
-                    ? `0 0 18px 0px ${tint}`
-                    : `0 0 10px -2px ${tint}`,
+                  ? `radial-gradient(circle, rgba(255, 59, 59, 0.25), #0D1117)`
+                  : `#0D1117`,
+            boxShadow: active ? `0 0 12px ${tint}` : inPath ? `0 0 8px ${tint}` : "none",
           }}
         >
-          <Icon size={node.type === "cluster" ? 28 : node.type === "suspect" ? 22 : 16} style={{ color: tint }} />
+          <Icon size={node.type === "cluster" ? 20 : node.type === "suspect" ? 15 : 12} style={{ color: tint }} />
         </span>
 
         {tor && (
           <span
-            className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full border shadow-md"
-            style={{
-              borderColor: "var(--warn)",
-              background: "oklch(0.15 0.01 250)",
-              color: "var(--warn)",
-            }}
+            className="absolute -right-1 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full border border-warn bg-[#0A0E14] text-warn shadow"
           >
-            <Shield size={9} />
+            <Shield size={8} />
           </span>
         )}
       </div>
 
-      {/* Anti-Collision Badges */}
+      {/* Clean Non-Colliding Labels */}
       <div
-        className={`flex flex-col items-center pointer-events-none transition-all duration-200 ${
-          labelBelow ? "mt-1.5" : "absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2"
+        className={`flex flex-col items-center pointer-events-none ${
+          labelBelow ? "mt-1" : "absolute bottom-full mb-1 left-1/2 -translate-x-1/2"
         }`}
       >
         {node.type === "cluster" ? (
           <div className="flex flex-col items-center">
             <span
-              className="rounded px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider text-[#E6EDF3] border border-[#1C232E] bg-[#0D1117] shadow-lg whitespace-nowrap"
+              className="rounded px-1.5 py-0.2 text-[8.5px] font-mono font-bold tracking-wider text-[#E6EDF3] border border-[#1C232E] bg-[#0D1117] shadow whitespace-nowrap"
               style={{ borderColor: color }}
             >
               {node.label}
             </span>
-            <span className="mt-0.5 text-[8px] font-mono text-[#7D8590] whitespace-nowrap bg-[#0D1117]/90 px-1.5 rounded border border-[#1C232E]/40">
-              {node.sub}
-            </span>
+            {node.sub && (
+              <span className="mt-0.5 text-[7px] font-mono text-[#7D8590] whitespace-nowrap">
+                {node.sub}
+              </span>
+            )}
           </div>
         ) : node.type === "suspect" ? (
-          <div className="flex flex-col items-center">
-            <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[9px] font-mono font-bold text-[#FF3B3B] border border-[#FF3B3B]/60 bg-[#0D1117] shadow-lg shadow-[#FF3B3B]/10 whitespace-nowrap">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B3B] animate-pulse shadow-[0_0_6px_#FF3B3B]" />
-              SUSPECT // {node.label} • {node.risk}%
-            </span>
-          </div>
+          <span className="rounded px-1.5 py-0.2 text-[8px] font-mono font-bold text-[#FF3B3B] border border-[#FF3B3B]/50 bg-[#0D1117] shadow whitespace-nowrap">
+            SUSPECT // {node.label} • {node.risk}%
+          </span>
         ) : node.type === "ip" ? (
-          <span className="rounded px-1.5 py-0.5 text-[8px] font-mono text-[#7D8590] border border-[#1C232E] bg-[#0D1117] whitespace-nowrap shadow">
-            HOP: {node.label}
+          <span className="text-[7.5px] font-mono text-[#7D8590] whitespace-nowrap">
+            {node.label}
           </span>
         ) : (
           <span
-            className={`rounded px-1.5 py-0.2 text-[8px] font-mono whitespace-nowrap transition-opacity duration-150 ${
+            className={`text-[7.5px] font-mono whitespace-nowrap transition-opacity ${
               active || inPath || isHovered
-                ? "opacity-100 text-[#39FF88] border border-[#39FF88]/40 bg-[#0D1117]"
-                : "opacity-60 group-hover:opacity-100 text-[#7D8590] border border-[#1C232E] bg-[#0D1117]/90"
+                ? "opacity-100 text-[#39FF88] font-bold"
+                : "opacity-60 text-[#7D8590]"
             }`}
           >
             {node.label}
@@ -392,7 +360,7 @@ export function GraphCanvas({
   const [view, setView] = useState({ s: 1, x: 0, y: 0 });
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("constellation");
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const [flowAnimation, setFlowAnimation] = useState(true);
+  const [flowAnimation, setFlowAnimation] = useState(false);
   const [traceTrailActive, setTraceTrailActive] = useState(false);
   const [hoverEdge, setHoverEdge] = useState<string | null>(null);
 
@@ -666,11 +634,11 @@ export function GraphCanvas({
           const isSuspectI = ni.type === "suspect";
           const isSuspectJ = nj.type === "suspect";
 
-          // Calibrated pixel clearance between center points (preserves safe Crown geometry)
-          let reqDistPx = 76; // standard nodes (circle 32px + safety margin + label)
-          if (isClusterI && isClusterJ) reqDistPx = 250; // between two clusters
-          else if (isClusterI || isClusterJ) reqDistPx = 105; // node vs cluster hub
-          else if (isSuspectI || isSuspectJ) reqDistPx = 92; // node vs suspect threat aura
+          // Calibrated pixel clearance between center points (compact, zero-overlap)
+          let reqDistPx = 54; // standard nodes (circle 22-26px + safety margin)
+          if (isClusterI && isClusterJ) reqDistPx = 220; // between two clusters
+          else if (isClusterI || isClusterJ) reqDistPx = 76; // node vs cluster hub
+          else if (isSuspectI || isSuspectJ) reqDistPx = 62; // node vs suspect threat aura
 
           if (distPx < reqDistPx) {
             const overlap = (reqDistPx - distPx) / distPx;
@@ -706,15 +674,15 @@ export function GraphCanvas({
       }
 
       // Hard Banner Exclusion Zone Solver:
-      // Prevents any non-cluster node from overlapping with the 220px cluster banner
+      // Prevents any non-cluster node from overlapping with the cluster banner
       const clusterNodesList = currentNodes.filter((n) => n.type === "cluster");
       clusterNodesList.forEach((cn) => {
         const cpos = posMap[cn.id];
         if (!cpos) return;
-        const bxMin = cpos.x - 9.5;
-        const bxMax = cpos.x + 9.5;
-        const byMin = cpos.y - 1.0;
-        const byMax = cpos.y + 11.5;
+        const bxMin = cpos.x - 6.0;
+        const bxMax = cpos.x + 6.0;
+        const byMin = cpos.y - 0.5;
+        const byMax = cpos.y + 6.0;
 
         currentNodes.forEach((nd) => {
           if (nd.type === "cluster") return;
@@ -1215,17 +1183,17 @@ export function GraphCanvas({
             className="absolute inset-0 h-full w-full overflow-visible pointer-events-none"
           >
             <defs>
-              {/* Arrowhead Markers */}
+              {/* Precision Scaled Arrowhead Markers */}
               <marker
                 id="defaultArrow"
                 viewBox="0 0 10 10"
-                refX="6"
+                refX="7"
                 refY="5"
-                markerWidth="4.5"
-                markerHeight="4.5"
+                markerWidth="2.2"
+                markerHeight="2.2"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(148, 163, 184, 0.75)" />
+                <path d="M 0 2 L 6 5 L 0 8 z" fill="rgba(148, 163, 184, 0.6)" />
               </marker>
 
               <marker
@@ -1233,23 +1201,23 @@ export function GraphCanvas({
                 viewBox="0 0 10 10"
                 refX="7"
                 refY="5"
-                markerWidth="5.5"
-                markerHeight="5.5"
+                markerWidth="2.5"
+                markerHeight="2.5"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 9 5 L 0 9 z" fill="#EF4444" />
+                <path d="M 0 2 L 7 5 L 0 8 z" fill="#EF4444" />
               </marker>
 
               <marker
                 id="activeArrow"
                 viewBox="0 0 10 10"
-                refX="6"
+                refX="7"
                 refY="5"
-                markerWidth="5"
-                markerHeight="5"
+                markerWidth="2.3"
+                markerHeight="2.3"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--signal)" />
+                <path d="M 0 2 L 7 5 L 0 8 z" fill="var(--signal)" />
               </marker>
 
               <linearGradient id="trailGrad" x1="0" y1="0" x2="1" y2="0">
@@ -1259,7 +1227,7 @@ export function GraphCanvas({
               </linearGradient>
 
               <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feGaussianBlur stdDeviation="0.4" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
             </defs>
@@ -1274,8 +1242,7 @@ export function GraphCanvas({
                     w: 42,
                     h: 40,
                     color: "#EF4444",
-                    tag: "ZONE 01 // LOCKBIT EXTORTION NEXUS",
-                    sub: "HIGH-RISK RANSOMWARE THREAT CORRIDOR",
+                    tag: "ZONE 01 // LOCKBIT EXTORTION",
                   },
                   {
                     x: 55,
@@ -1283,8 +1250,7 @@ export function GraphCanvas({
                     w: 42,
                     h: 40,
                     color: "#F59E0B",
-                    tag: "ZONE 02 // UPI-CRYPTO MULE RING",
-                    sub: "SMURFING & LAYERED CASH-OUT NETWORK",
+                    tag: "ZONE 02 // UPI-CRYPTO MULES",
                   },
                   {
                     x: 3,
@@ -1292,8 +1258,7 @@ export function GraphCanvas({
                     w: 42,
                     h: 40,
                     color: "#8B5CF6",
-                    tag: "ZONE 03 // WASABI COINJOIN POOL",
-                    sub: "ZERO-LINK ANONYMIZATION PROTOCOL",
+                    tag: "ZONE 03 // WASABI COINJOIN",
                   },
                   {
                     x: 55,
@@ -1302,7 +1267,6 @@ export function GraphCanvas({
                     h: 40,
                     color: "#00F0FF",
                     tag: "ZONE 04 // TOR ONION RELAYS",
-                    sub: "DARKNET INFRASTRUCTURE & ROUTING EXITS",
                   },
                 ].map((zone, zi) => (
                   <g key={`zone-${zi}`}>
@@ -1314,63 +1278,53 @@ export function GraphCanvas({
                       height={zone.h}
                       rx={1.5}
                       fill={zone.color}
-                      fillOpacity="0.015"
+                      fillOpacity="0.008"
                       stroke={zone.color}
-                      strokeWidth="0.22"
+                      strokeWidth="0.10"
                       strokeDasharray="2 3"
-                      strokeOpacity="0.3"
+                      strokeOpacity="0.2"
                     />
                     {/* Corner Accent Brackets */}
                     <path
-                      d={`M ${zone.x + 3} ${zone.y} L ${zone.x} ${zone.y} L ${zone.x} ${zone.y + 3}`}
+                      d={`M ${zone.x + 2} ${zone.y} L ${zone.x} ${zone.y} L ${zone.x} ${zone.y + 2}`}
                       fill="none"
                       stroke={zone.color}
-                      strokeWidth="0.5"
-                      strokeOpacity="0.6"
+                      strokeWidth="0.25"
+                      strokeOpacity="0.4"
                     />
                     <path
-                      d={`M ${zone.x + zone.w - 3} ${zone.y} L ${zone.x + zone.w} ${zone.y} L ${zone.x + zone.w} ${zone.y + 3}`}
+                      d={`M ${zone.x + zone.w - 2} ${zone.y} L ${zone.x + zone.w} ${zone.y} L ${zone.x + zone.w} ${zone.y + 2}`}
                       fill="none"
                       stroke={zone.color}
-                      strokeWidth="0.5"
-                      strokeOpacity="0.6"
+                      strokeWidth="0.25"
+                      strokeOpacity="0.4"
                     />
                     <path
-                      d={`M ${zone.x} ${zone.y + zone.h - 3} L ${zone.x} ${zone.y + zone.h} L ${zone.x + 3} ${zone.y + zone.h}`}
+                      d={`M ${zone.x} ${zone.y + zone.h - 2} L ${zone.x} ${zone.y + zone.h} L ${zone.x + 2} ${zone.y + zone.h}`}
                       fill="none"
                       stroke={zone.color}
-                      strokeWidth="0.5"
-                      strokeOpacity="0.6"
+                      strokeWidth="0.25"
+                      strokeOpacity="0.4"
                     />
                     <path
-                      d={`M ${zone.x + zone.w - 3} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h - 3}`}
+                      d={`M ${zone.x + zone.w - 2} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h - 2}`}
                       fill="none"
                       stroke={zone.color}
-                      strokeWidth="0.5"
-                      strokeOpacity="0.6"
+                      strokeWidth="0.25"
+                      strokeOpacity="0.4"
                     />
-                    {/* Tactical Header Label */}
+                    {/* Subtle Tactical Tag in Outer Corner */}
                     <text
-                      x={zone.x + 2}
-                      y={zone.y + 3.2}
+                      x={zone.x + 1.5}
+                      y={zone.y + 2.2}
                       fill={zone.color}
-                      fontSize="1.7"
+                      fontSize="1.0"
                       fontFamily="monospace"
                       fontWeight="bold"
                       letterSpacing="0.08em"
-                      opacity="0.75"
+                      opacity="0.45"
                     >
                       {zone.tag}
-                    </text>
-                    <text
-                      x={zone.x + 2}
-                      y={zone.y + 5.2}
-                      fill="#7D8590"
-                      fontSize="1.2"
-                      fontFamily="monospace"
-                      opacity="0.5"
-                    >
-                      {zone.sub}
                     </text>
                   </g>
                 ))}
@@ -1411,10 +1365,9 @@ export function GraphCanvas({
                     <path
                       d={pathD}
                       fill="none"
-                      stroke="#EF4444"
-                      strokeWidth={1.4}
-                      strokeOpacity={0.6}
-                      filter="url(#glowEffect)"
+                      stroke="#FF3B3B"
+                      strokeWidth={0.35}
+                      strokeOpacity={0.35}
                     />
                   )}
 
@@ -1424,23 +1377,22 @@ export function GraphCanvas({
                     fill="none"
                     stroke={
                       isHighlighted
-                        ? "url(#trailGrad)"
+                        ? "#FF3B3B"
                         : isSuspectEdge
-                          ? "#EF4444"
-                          : "rgba(148, 163, 184, 0.45)"
+                          ? "#FF3B3B"
+                          : "rgba(148, 163, 184, 0.35)"
                     }
                     strokeOpacity={
                       selected || traceTrailActive
                         ? isHighlighted
                           ? 1
-                          : 0.12
+                          : 0.15
                         : isSuspectEdge
-                          ? 0.9
-                          : 0.45
+                          ? 0.85
+                          : 0.35
                     }
-                    strokeWidth={isHighlighted ? 0.65 : isSuspectEdge ? 0.45 : 0.28}
-                    strokeDasharray={flowAnimation || isSuspectEdge ? "1.5 1.5" : undefined}
-                    className={flowAnimation || isSuspectEdge ? "animate-dash" : ""}
+                    strokeWidth={isHighlighted ? 0.22 : isSuspectEdge ? 0.14 : 0.08}
+                    strokeDasharray={isSuspectEdge ? "0.8 0.8" : undefined}
                     markerEnd={
                       isHighlighted
                         ? "url(#trailArrow)"
@@ -1455,44 +1407,43 @@ export function GraphCanvas({
                     d={pathD}
                     fill="none"
                     stroke="transparent"
-                    strokeWidth={3}
+                    strokeWidth={1.6}
                     className="pointer-events-auto cursor-pointer"
                     onMouseEnter={() => setHoverEdge(edgeKey)}
                     onMouseLeave={() => setHoverEdge((h) => (h === edgeKey ? null : h))}
                   />
 
-                  {/* Live Fund Transfer Animated Particles (Glowing Photon) */}
-                  {flowAnimation && (isHighlighted || isSuspectEdge) && (
+                  {/* Live Fund Transfer Animated Particles (Only on highlighted active trail when PULSE enabled) */}
+                  {flowAnimation && isHighlighted && (
                     <circle
-                      r={isHighlighted ? 0.85 : 0.65}
-                      fill={isSuspectEdge ? "#FF3B3B" : "#39FF88"}
-                      filter="url(#glowEffect)"
+                      r={0.32}
+                      fill="#39FF88"
                     >
                       <animateMotion
                         path={pathD}
-                        dur={isSuspectEdge ? "2.0s" : "2.8s"}
+                        dur="2.4s"
                         repeatCount="indefinite"
                       />
                     </circle>
                   )}
 
-                  {/* Sequential Hop Badge on Highlighted Trail (Only on true BTC fund flows) */}
+                  {/* Sequential Hop Badge on Highlighted Trail */}
                   {inActiveTrail && traceTrailActive && e.amount && !e.amount.includes("risk") && (
                     <g className="pointer-events-none">
                       <rect
-                        x={cx - 6}
-                        y={cy - 2}
-                        width={12}
-                        height={4}
-                        rx={2}
+                        x={cx - 4.5}
+                        y={cy - 1.5}
+                        width={9}
+                        height={3}
+                        rx={1}
                         className="fill-black/95 stroke-critical/80"
-                        strokeWidth="0.25"
+                        strokeWidth="0.15"
                       />
                       <text
                         x={cx}
-                        y={cy + 0.8}
+                        y={cy + 0.5}
                         textAnchor="middle"
-                        className="fill-critical font-mono text-[2.4px] font-bold"
+                        className="fill-critical font-mono text-[1.6px] font-bold"
                       >
                         {e.amount}
                       </text>
@@ -1503,19 +1454,19 @@ export function GraphCanvas({
                   {hoverEdge === edgeKey && !isHighlighted && (
                     <g className="pointer-events-none">
                       <rect
-                        x={cx - 6.5}
-                        y={cy - 2.2}
-                        width={13}
-                        height={4.4}
-                        rx={2.2}
+                        x={cx - 5}
+                        y={cy - 1.6}
+                        width={10}
+                        height={3.2}
+                        rx={1}
                         className="fill-black/95 stroke-signal/80"
-                        strokeWidth="0.25"
+                        strokeWidth="0.15"
                       />
                       <text
                         x={cx}
-                        y={cy + 0.8}
+                        y={cy + 0.5}
                         textAnchor="middle"
-                        className="fill-foreground font-mono text-[2.5px] font-bold"
+                        className="fill-foreground font-mono text-[1.6px] font-bold"
                       >
                         {e.amount}
                       </text>
