@@ -22,10 +22,12 @@ import {
   Route,
   ArrowRight,
   Move,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { gEdges as mockEdges, gNodes as mockNodes, type GNode, type GEdge, type GNodeType } from "@/lib/graph-data";
 import { API_BASE } from "@/lib/api";
+import { WorldMapVector } from "./WorldMapVector";
 
 export const TYPE_META: Record<
   GNodeType,
@@ -38,7 +40,7 @@ export const TYPE_META: Record<
   cluster: { color: "#FF9F1C", bloom: "0 0 12px rgba(255, 159, 28, 0.7)", icon: Building2, label: "Syndicate Cluster", badge: "SYNDICATE HUB" },
 };
 
-type LayoutMode = "constellation" | "force" | "flow";
+type LayoutMode = "geospatial" | "constellation" | "force" | "flow";
 type FilterType = "all" | "suspect" | "cluster" | "ip" | "wallet";
 
 interface Pos {
@@ -255,18 +257,21 @@ function NodeShape({
 
       {/* Main Node Visual Plate */}
       <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-        {/* Suspect Pulsing Radar Threat Aura */}
+        {/* Suspect Pulsing Radar Threat Aura & Expanding Sonar Shockwaves */}
         {node.type === "suspect" && (
           <>
             <span
-              className="animate-ping pointer-events-none absolute inset-0 rounded-full border-2 opacity-60"
-              style={{ borderColor: "var(--critical)" }}
+              className="animate-ping pointer-events-none absolute -inset-2 rounded-full border-2 opacity-65 duration-1000"
+              style={{ borderColor: "#FF3B3B" }}
+            />
+            <span
+              className="animate-pulse pointer-events-none absolute -inset-4 rounded-full border border-[#FF3B3B]/40 duration-700"
             />
             <span
               className="animate-spin-slow pointer-events-none absolute rounded-full border border-dashed"
               style={{
                 inset: -9,
-                borderColor: "color-mix(in oklab, var(--critical) 80%, transparent)",
+                borderColor: "color-mix(in oklab, var(--critical) 85%, transparent)",
               }}
             />
           </>
@@ -390,7 +395,7 @@ export function GraphCanvas({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ s: 1, x: 0, y: 0 });
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("constellation");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("geospatial");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [flowAnimation, setFlowAnimation] = useState(true);
   const [traceTrailActive, setTraceTrailActive] = useState(false);
@@ -439,7 +444,164 @@ export function GraphCanvas({
   const computePositions = useCallback((mode: LayoutMode, currentNodes: GNode[]): Record<string, Pos> => {
     const posMap: Record<string, Pos> = {};
 
-    if (mode === "constellation") {
+    if (mode === "geospatial") {
+      // 0. Defense Intelligence Geospatial Layout:
+      // Real-World Cross-Border Cybercrime Coordinates (Equirectangular 0-100% space)
+      // India (CBI / UPI Mules): 77°E, 28°N -> x: 71.5, y: 37.5
+      // Russia (LockBit / Moscow): 38°E, 56°N -> x: 60.5, y: 18.0
+      // Germany (Frankfurt Tor Exit): 9°E, 51°N -> x: 52.4, y: 21.0
+      // UAE (Dubai OTC / Wasabi): 55°E, 25°N -> x: 65.5, y: 35.0
+
+      const geoClusterAnchors: Record<string, { cx: number; cy: number; isTop: boolean }> = {
+        cluster_0: { cx: 60.5, cy: 18.0, isTop: true },   // Russia / LockBit
+        cluster_1: { cx: 71.5, cy: 37.5, isTop: false },  // India / UPI Mules
+        cluster_2: { cx: 65.5, cy: 35.0, isTop: false },  // UAE / Dubai Wasabi
+        cluster_3: { cx: 52.4, cy: 21.0, isTop: true },   // Germany / Frankfurt Tor
+        c1: { cx: 60.5, cy: 18.0, isTop: true },          // Blackriver (RU)
+        c2: { cx: 52.4, cy: 21.0, isTop: true },          // Nightferry (NL/Tor)
+      };
+
+      const fallbackGeoList = [
+        { cx: 60.5, cy: 18.0, isTop: true },
+        { cx: 71.5, cy: 37.5, isTop: false },
+        { cx: 65.5, cy: 35.0, isTop: false },
+        { cx: 52.4, cy: 21.0, isTop: true },
+      ];
+
+      const clusterNodes = currentNodes.filter((n) => n.type === "cluster");
+      clusterNodes.forEach((cn, idx) => {
+        let center = geoClusterAnchors[cn.id];
+        if (!center) {
+          const lbl = (cn.label + " " + cn.sub + " " + cn.full).toUpperCase();
+          if (lbl.includes("LOCKBIT") || lbl.includes("RUSSIA") || lbl.includes("RU")) {
+            center = { cx: 60.5, cy: 18.0, isTop: true };
+          } else if (lbl.includes("UPI") || lbl.includes("MULE") || lbl.includes("INDIA") || lbl.includes("IN")) {
+            center = { cx: 71.5, cy: 37.5, isTop: false };
+          } else if (lbl.includes("WASABI") || lbl.includes("COINJOIN") || lbl.includes("DUBAI") || lbl.includes("AE")) {
+            center = { cx: 65.5, cy: 35.0, isTop: false };
+          } else if (lbl.includes("TOR") || lbl.includes("GERMANY") || lbl.includes("FRANKFURT") || lbl.includes("NL")) {
+            center = { cx: 52.4, cy: 21.0, isTop: true };
+          } else {
+            center = fallbackGeoList[idx % fallbackGeoList.length] ?? { cx: 50, cy: 50, isTop: true };
+          }
+        }
+        posMap[cn.id] = { x: center.cx, y: center.cy };
+      });
+
+      // Group members by cluster
+      const clusterMembers: Record<string, GNode[]> = {};
+      const unclustered: GNode[] = [];
+
+      currentNodes.forEach((n) => {
+        if (n.type === "cluster") return;
+        const cid = n.cluster;
+        if (cid && (posMap[cid] || geoClusterAnchors[cid])) {
+          if (!clusterMembers[cid]) clusterMembers[cid] = [];
+          clusterMembers[cid]!.push(n);
+        } else {
+          unclustered.push(n);
+        }
+      });
+
+      // Regional Slot Allocation across true geographic corridors
+      const getGeoSlots = (cid: string, hubX: number, hubY: number) => {
+        if (hubX > 68) {
+          // India / South Asia corridor:
+          // Center ~71.5, 37.5
+          return [
+            { dx: 0, dy: -5.0 },     // New Delhi (Suspect #1 priority)
+            { dx: -4.5, dy: 1.2 },   // Mumbai / West Coast
+            { dx: 0.5, dy: 6.2 },    // Bengaluru / Kerala (South)
+            { dx: 4.8, dy: 0.8 },    // Kolkata / Bengal Delta (East)
+            { dx: -2.8, dy: -3.5 },  // Punjab / Border (Northwest)
+            { dx: 1.8, dy: 3.5 },    // Hyderabad / Deccan (Central)
+            { dx: -4.8, dy: 4.2 },   // Goa / Arabian Sea (SW)
+            { dx: 4.0, dy: 4.8 },    // Chennai / Bay of Bengal (SE)
+            { dx: -6.0, dy: -1.5 },  // Pakistan / Karachi link
+            { dx: 6.5, dy: 2.2 },    // Assam / NE corridor
+          ];
+        } else if (hubY < 20 && hubX > 56) {
+          // Russia / Moscow / Eastern Europe:
+          // Center ~60.5, 18.0
+          return [
+            { dx: -3.2, dy: -3.8 },  // St. Petersburg / Baltics (Suspect #1 priority)
+            { dx: -5.0, dy: 2.5 },   // Belarus / Western Border
+            { dx: 6.8, dy: -1.0 },   // Urals / Siberia
+            { dx: -0.5, dy: 5.2 },   // Black Sea / Caucasus
+            { dx: 1.8, dy: -5.5 },   // Karelia / Far North
+            { dx: 4.5, dy: 3.5 },    // Caspian Sea
+            { dx: -6.5, dy: -1.2 },  // Warsaw / Poland border
+            { dx: 8.5, dy: 2.0 },    // Omsk / Siberia
+          ];
+        } else if (hubX < 56 && hubY < 30) {
+          // Germany / Frankfurt / Western Europe / Tor:
+          // Center ~52.4, 21.0
+          return [
+            { dx: 1.5, dy: -3.8 },   // Berlin / North (Suspect #1 priority)
+            { dx: -3.8, dy: -1.0 },  // Amsterdam / Netherlands
+            { dx: -0.5, dy: 4.5 },   // Zurich / Alps / Switzerland
+            { dx: -5.2, dy: -2.5 },  // London / UK
+            { dx: 3.8, dy: 1.0 },    // Prague / Central Europe
+            { dx: -4.0, dy: 3.5 },   // Paris / France
+            { dx: 2.2, dy: -6.5 },   // Stockholm / Scandinavia
+            { dx: 1.2, dy: 6.8 },    // Milan / Italy
+          ];
+        } else {
+          // UAE / Dubai / Gulf OTC Desk:
+          // Center ~65.5, 35.0
+          return [
+            { dx: -1.2, dy: -3.5 },  // Persian Gulf / Qatar (Suspect #1 priority)
+            { dx: 3.2, dy: 1.5 },    // Oman / Muscat
+            { dx: -3.8, dy: 1.2 },   // Riyadh / Saudi Arabia
+            { dx: -2.0, dy: 5.5 },   // Yemen / Red Sea
+            { dx: 2.8, dy: -2.2 },   // Strait of Hormuz
+            { dx: -4.8, dy: -2.8 },  // Kuwait / Iraq
+            { dx: 4.8, dy: 4.2 },    // Indian Ocean Ingress
+            { dx: -1.2, dy: 7.5 },   // Gulf of Aden
+          ];
+        }
+      };
+
+      Object.entries(clusterMembers).forEach(([cid, members]) => {
+        const hub = posMap[cid] ?? { x: 50, y: 50 };
+        const slots = getGeoSlots(cid, hub.x, hub.y);
+
+        // Sort to place suspects and high-risk nodes in slot 0, 1, 2
+        const sorted = [...members].sort((a, b) => {
+          if (a.type === "suspect" && b.type !== "suspect") return -1;
+          if (b.type === "suspect" && a.type !== "suspect") return 1;
+          const riskA = a.risk ?? 0;
+          const riskB = b.risk ?? 0;
+          if (riskA !== riskB) return riskB - riskA;
+          return a.id.localeCompare(b.id);
+        });
+
+        sorted.forEach((m, mi) => {
+          const slot = slots[mi % slots.length]!;
+          const x = hub.x + slot.dx;
+          const y = hub.y + slot.dy;
+          posMap[m.id] = {
+            x: Math.min(94, Math.max(6, Math.round(x * 10) / 10)),
+            y: Math.min(88, Math.max(12, Math.round(y * 10) / 10)),
+          };
+        });
+      });
+
+      // Unclustered international hops placed at tactical transit nodes
+      const globalTransitHops = [
+        { x: 23.5, y: 28.0 }, // US East Coast (FinCEN / FBI)
+        { x: 79.0, y: 48.5 }, // Singapore Financial Nexus
+        { x: 32.0, y: 55.0 }, // South America (Brazil)
+        { x: 88.0, y: 64.0 }, // Australia (Sydney)
+        { x: 87.5, y: 27.5 }, // Japan (Tokyo)
+        { x: 48.5, y: 35.0 }, // North Africa (Casablanca)
+      ];
+
+      unclustered.forEach((un, ui) => {
+        const pt = globalTransitHops[ui % globalTransitHops.length]!;
+        posMap[un.id] = { x: pt.x, y: pt.y };
+      });
+    } else if (mode === "constellation") {
       // 1. Constellation: 4 Balanced Quadrant Anchors with wide central corridors
       const clusterCenters: Record<string, { cx: number; cy: number; isTop: boolean }> = {
         cluster_0: { cx: 25, cy: 30, isTop: true },
@@ -897,12 +1059,12 @@ export function GraphCanvas({
     setView((v) => ({ ...v, s: Math.min(3.5, Math.max(0.35, +(v.s + delta).toFixed(2))) }));
 
   const handleAutoOrganise = useCallback(() => {
-    const fresh = computePositions("constellation", nodes);
+    const fresh = computePositions("geospatial", nodes);
     setPositions(fresh);
-    setLayoutMode("constellation");
+    setLayoutMode("geospatial");
     setView({ s: 1, x: 0, y: 0 });
     toast.success("Graph Layout Auto-Organised", {
-      description: "Constellation geometry & zero-collision rules applied.",
+      description: "Geospatial flight coordinates & zero-collision rules applied.",
     });
   }, [computePositions, nodes]);
 
@@ -943,6 +1105,18 @@ export function GraphCanvas({
         <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded border border-[#1C232E]">
           <button
             type="button"
+            onClick={() => setLayoutMode("geospatial")}
+            className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+              layoutMode === "geospatial"
+                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
+                : "text-[#7D8590] hover:text-[#E6EDF3]"
+            }`}
+            title="Geospatial World Map Defense View"
+          >
+            <Globe size={11} /> MAP
+          </button>
+          <button
+            type="button"
             onClick={() => setLayoutMode("constellation")}
             className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "constellation"
@@ -955,18 +1129,6 @@ export function GraphCanvas({
           </button>
           <button
             type="button"
-            onClick={() => setLayoutMode("force")}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
-              layoutMode === "force"
-                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
-                : "text-[#7D8590] hover:text-[#E6EDF3]"
-            }`}
-            title="Force Dynamic Physics (Drag Enabled)"
-          >
-            <Zap size={11} /> FORCE
-          </button>
-          <button
-            type="button"
             onClick={() => setLayoutMode("flow")}
             className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "flow"
@@ -976,6 +1138,18 @@ export function GraphCanvas({
             title="Forensic Fund Flow (Left-to-Right Pipeline)"
           >
             <GitFork size={11} /> FLOW
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode("force")}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+              layoutMode === "force"
+                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
+                : "text-[#7D8590] hover:text-[#E6EDF3]"
+            }`}
+            title="Force Dynamic Physics (Drag Enabled)"
+          >
+            <Zap size={11} /> FORCE
           </button>
         </div>
 
@@ -1218,7 +1392,16 @@ export function GraphCanvas({
               </filter>
             </defs>
 
-            {/* Tactical Territorial Quadrant Hulls */}
+            {/* Real World Map Vector Layer */}
+            {layoutMode === "geospatial" && (
+              <WorldMapVector
+                showRadarSweep={flowAnimation}
+                showGraticules={true}
+                showJurisdictionZones={true}
+              />
+            )}
+
+            {/* Tactical Territorial Quadrant Hulls (Constellation View) */}
             {layoutMode === "constellation" && (
               <g className="cluster-hulls pointer-events-none">
                 {[
@@ -1265,9 +1448,20 @@ export function GraphCanvas({
               const my = (aPos.y + bPos.y) / 2;
               const dx = bPos.x - aPos.x;
               const dy = bPos.y - aPos.y;
-              // Subtle curve offset
-              const cx = +(mx - dy * 0.08).toFixed(1);
-              const cy = +(my + dx * 0.08).toFixed(1);
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              // Parabolic Great-Circle Flight Arcs in Geospatial Mode
+              let cx: number;
+              let cy: number;
+              if (layoutMode === "geospatial") {
+                const arcHeight = Math.min(10, Math.max(3.2, dist * 0.18));
+                // Geodesic upward arc towards northern sky
+                cx = +(mx - (dy / (dist || 1)) * arcHeight * 0.3).toFixed(1);
+                cy = +(my - Math.abs(dx / (dist || 1)) * arcHeight).toFixed(1);
+              } else {
+                cx = +(mx - dy * 0.08).toFixed(1);
+                cy = +(my + dx * 0.08).toFixed(1);
+              }
 
               const pathD = `M ${aPos.x} ${aPos.y} Q ${cx} ${cy} ${bPos.x} ${bPos.y}`;
 
@@ -1330,18 +1524,33 @@ export function GraphCanvas({
                     onMouseLeave={() => setHoverEdge((h) => (h === edgeKey ? null : h))}
                   />
 
-                  {/* Live Fund Transfer Animated Particle */}
+                  {/* Live Fund Transfer Animated Particles (Staggered Dual Photons) */}
                   {flowAnimation && (isHighlighted || isSuspectEdge) && (
-                    <circle
-                      r="0.75"
-                      fill={isSuspectEdge ? "#EF4444" : "var(--signal)"}
-                    >
-                      <animateMotion
-                        path={pathD}
-                        dur={isSuspectEdge ? "1.8s" : "3.0s"}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
+                    <>
+                      <circle
+                        r={isHighlighted ? 0.9 : 0.75}
+                        fill={isSuspectEdge ? "#FF3B3B" : "#39FF88"}
+                        filter="url(#glowEffect)"
+                      >
+                        <animateMotion
+                          path={pathD}
+                          dur={isSuspectEdge ? "1.8s" : "2.8s"}
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                      <circle
+                        r={0.55}
+                        fill={isSuspectEdge ? "#FFD60A" : "#00F0FF"}
+                        opacity="0.85"
+                      >
+                        <animateMotion
+                          path={pathD}
+                          dur={isSuspectEdge ? "1.8s" : "2.8s"}
+                          begin={isSuspectEdge ? "0.9s" : "1.4s"}
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    </>
                   )}
 
                   {/* Sequential Hop Badge on Highlighted Trail (Only on true BTC fund flows) */}
@@ -1447,6 +1656,10 @@ export function GraphCanvas({
             }
           }}
         >
+          {/* Tactical Geospatial Minimap Graticules */}
+          <line x1="0" y1="40" x2="100" y2="40" stroke="#1C2D42" strokeWidth="0.4" strokeDasharray="1 2" opacity={0.6} />
+          <line x1="50" y1="0" x2="50" y2="80" stroke="#1C2D42" strokeWidth="0.4" strokeDasharray="1 2" opacity={0.6} />
+
           {edges.map((e) => {
             const a = positions[e.from];
             const b = positions[e.to];
