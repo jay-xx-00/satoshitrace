@@ -22,12 +22,10 @@ import {
   Route,
   ArrowRight,
   Move,
-  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { gEdges as mockEdges, gNodes as mockNodes, type GNode, type GEdge, type GNodeType } from "@/lib/graph-data";
 import { API_BASE } from "@/lib/api";
-import { WorldMapVector } from "./WorldMapVector";
 
 export const TYPE_META: Record<
   GNodeType,
@@ -40,7 +38,7 @@ export const TYPE_META: Record<
   cluster: { color: "#FF9F1C", bloom: "0 0 12px rgba(255, 159, 28, 0.7)", icon: Building2, label: "Syndicate Cluster", badge: "SYNDICATE HUB" },
 };
 
-type LayoutMode = "geospatial" | "constellation" | "force" | "flow";
+type LayoutMode = "constellation" | "flow" | "force";
 type FilterType = "all" | "suspect" | "cluster" | "ip" | "wallet";
 
 interface Pos {
@@ -336,33 +334,30 @@ function NodeShape({
       {/* Anti-Collision Badges */}
       <div
         className={`flex flex-col items-center pointer-events-none transition-all duration-200 ${
-          labelBelow ? "mt-2" : "absolute bottom-full mb-2 left-1/2 -translate-x-1/2"
+          labelBelow ? "mt-1.5" : "absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2"
         }`}
       >
         {node.type === "cluster" ? (
           <div className="flex flex-col items-center">
             <span
-              className="rounded px-2.5 py-0.5 text-[9.5px] font-mono font-bold tracking-wider text-[#E6EDF3] border border-[#1C232E] bg-[#0D1117] shadow-lg whitespace-nowrap"
+              className="rounded px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider text-[#E6EDF3] border border-[#1C232E] bg-[#0D1117] shadow-lg whitespace-nowrap"
               style={{ borderColor: color }}
             >
               {node.label}
             </span>
-            <span className="mt-0.5 text-[8.5px] font-mono text-[#7D8590] whitespace-nowrap bg-[#0D1117]/80 px-1.5 rounded border border-[#1C232E]/40">
+            <span className="mt-0.5 text-[8px] font-mono text-[#7D8590] whitespace-nowrap bg-[#0D1117]/90 px-1.5 rounded border border-[#1C232E]/40">
               {node.sub}
             </span>
           </div>
         ) : node.type === "suspect" ? (
           <div className="flex flex-col items-center">
-            <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-mono font-bold text-[#FF3B3B] border border-[#FF3B3B]/60 bg-[#0D1117] shadow-lg shadow-[#FF3B3B]/10 whitespace-nowrap">
+            <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[9px] font-mono font-bold text-[#FF3B3B] border border-[#FF3B3B]/60 bg-[#0D1117] shadow-lg shadow-[#FF3B3B]/10 whitespace-nowrap">
               <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B3B] animate-pulse shadow-[0_0_6px_#FF3B3B]" />
-              SUSPECT // {node.label}
-            </span>
-            <span className="mt-0.5 text-[9px] font-mono text-[#FF3B3B]/90 font-bold tabular-nums whitespace-nowrap bg-[#0D1117] px-1.5 rounded border border-[#FF3B3B]/30">
-              {node.risk}% RISK • {node.sub.split("•")[1]?.trim() || "FLAGGED"}
+              SUSPECT // {node.label} • {node.risk}%
             </span>
           </div>
         ) : node.type === "ip" ? (
-          <span className="rounded px-2 py-0.5 text-[8.5px] font-mono text-[#7D8590] border border-[#1C232E] bg-[#0D1117] whitespace-nowrap shadow">
+          <span className="rounded px-1.5 py-0.5 text-[8px] font-mono text-[#7D8590] border border-[#1C232E] bg-[#0D1117] whitespace-nowrap shadow">
             HOP: {node.label}
           </span>
         ) : (
@@ -395,7 +390,7 @@ export function GraphCanvas({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ s: 1, x: 0, y: 0 });
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("geospatial");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("constellation");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [flowAnimation, setFlowAnimation] = useState(true);
   const [traceTrailActive, setTraceTrailActive] = useState(false);
@@ -444,179 +439,22 @@ export function GraphCanvas({
   const computePositions = useCallback((mode: LayoutMode, currentNodes: GNode[]): Record<string, Pos> => {
     const posMap: Record<string, Pos> = {};
 
-    if (mode === "geospatial") {
-      // 0. Defense Intelligence Geospatial Layout:
-      // Real-World Cross-Border Cybercrime Coordinates (Equirectangular 0-100% space)
-      // India (CBI / UPI Mules): 77°E, 28°N -> x: 71.5, y: 37.5
-      // Russia (LockBit / Moscow): 38°E, 56°N -> x: 60.5, y: 18.0
-      // Germany (Frankfurt Tor Exit): 9°E, 51°N -> x: 52.4, y: 21.0
-      // UAE (Dubai OTC / Wasabi): 55°E, 25°N -> x: 65.5, y: 35.0
-
-      const geoClusterAnchors: Record<string, { cx: number; cy: number; isTop: boolean }> = {
-        cluster_0: { cx: 60.5, cy: 18.0, isTop: true },   // Russia / LockBit
-        cluster_1: { cx: 71.5, cy: 37.5, isTop: false },  // India / UPI Mules
-        cluster_2: { cx: 65.5, cy: 35.0, isTop: false },  // UAE / Dubai Wasabi
-        cluster_3: { cx: 52.4, cy: 21.0, isTop: true },   // Germany / Frankfurt Tor
-        c1: { cx: 60.5, cy: 18.0, isTop: true },          // Blackriver (RU)
-        c2: { cx: 52.4, cy: 21.0, isTop: true },          // Nightferry (NL/Tor)
-      };
-
-      const fallbackGeoList = [
-        { cx: 60.5, cy: 18.0, isTop: true },
-        { cx: 71.5, cy: 37.5, isTop: false },
-        { cx: 65.5, cy: 35.0, isTop: false },
-        { cx: 52.4, cy: 21.0, isTop: true },
-      ];
-
-      const clusterNodes = currentNodes.filter((n) => n.type === "cluster");
-      clusterNodes.forEach((cn, idx) => {
-        let center = geoClusterAnchors[cn.id];
-        if (!center) {
-          const lbl = (cn.label + " " + cn.sub + " " + cn.full).toUpperCase();
-          if (lbl.includes("LOCKBIT") || lbl.includes("RUSSIA") || lbl.includes("RU")) {
-            center = { cx: 60.5, cy: 18.0, isTop: true };
-          } else if (lbl.includes("UPI") || lbl.includes("MULE") || lbl.includes("INDIA") || lbl.includes("IN")) {
-            center = { cx: 71.5, cy: 37.5, isTop: false };
-          } else if (lbl.includes("WASABI") || lbl.includes("COINJOIN") || lbl.includes("DUBAI") || lbl.includes("AE")) {
-            center = { cx: 65.5, cy: 35.0, isTop: false };
-          } else if (lbl.includes("TOR") || lbl.includes("GERMANY") || lbl.includes("FRANKFURT") || lbl.includes("NL")) {
-            center = { cx: 52.4, cy: 21.0, isTop: true };
-          } else {
-            center = fallbackGeoList[idx % fallbackGeoList.length] ?? { cx: 50, cy: 50, isTop: true };
-          }
-        }
-        posMap[cn.id] = { x: center.cx, y: center.cy };
-      });
-
-      // Group members by cluster
-      const clusterMembers: Record<string, GNode[]> = {};
-      const unclustered: GNode[] = [];
-
-      currentNodes.forEach((n) => {
-        if (n.type === "cluster") return;
-        const cid = n.cluster;
-        if (cid && (posMap[cid] || geoClusterAnchors[cid])) {
-          if (!clusterMembers[cid]) clusterMembers[cid] = [];
-          clusterMembers[cid]!.push(n);
-        } else {
-          unclustered.push(n);
-        }
-      });
-
-      // Regional Slot Allocation across true geographic corridors
-      const getGeoSlots = (cid: string, hubX: number, hubY: number) => {
-        if (hubX > 68) {
-          // India / South Asia corridor:
-          // Center ~71.5, 37.5
-          return [
-            { dx: 0, dy: -5.0 },     // New Delhi (Suspect #1 priority)
-            { dx: -4.5, dy: 1.2 },   // Mumbai / West Coast
-            { dx: 0.5, dy: 6.2 },    // Bengaluru / Kerala (South)
-            { dx: 4.8, dy: 0.8 },    // Kolkata / Bengal Delta (East)
-            { dx: -2.8, dy: -3.5 },  // Punjab / Border (Northwest)
-            { dx: 1.8, dy: 3.5 },    // Hyderabad / Deccan (Central)
-            { dx: -4.8, dy: 4.2 },   // Goa / Arabian Sea (SW)
-            { dx: 4.0, dy: 4.8 },    // Chennai / Bay of Bengal (SE)
-            { dx: -6.0, dy: -1.5 },  // Pakistan / Karachi link
-            { dx: 6.5, dy: 2.2 },    // Assam / NE corridor
-          ];
-        } else if (hubY < 20 && hubX > 56) {
-          // Russia / Moscow / Eastern Europe:
-          // Center ~60.5, 18.0
-          return [
-            { dx: -3.2, dy: -3.8 },  // St. Petersburg / Baltics (Suspect #1 priority)
-            { dx: -5.0, dy: 2.5 },   // Belarus / Western Border
-            { dx: 6.8, dy: -1.0 },   // Urals / Siberia
-            { dx: -0.5, dy: 5.2 },   // Black Sea / Caucasus
-            { dx: 1.8, dy: -5.5 },   // Karelia / Far North
-            { dx: 4.5, dy: 3.5 },    // Caspian Sea
-            { dx: -6.5, dy: -1.2 },  // Warsaw / Poland border
-            { dx: 8.5, dy: 2.0 },    // Omsk / Siberia
-          ];
-        } else if (hubX < 56 && hubY < 30) {
-          // Germany / Frankfurt / Western Europe / Tor:
-          // Center ~52.4, 21.0
-          return [
-            { dx: 1.5, dy: -3.8 },   // Berlin / North (Suspect #1 priority)
-            { dx: -3.8, dy: -1.0 },  // Amsterdam / Netherlands
-            { dx: -0.5, dy: 4.5 },   // Zurich / Alps / Switzerland
-            { dx: -5.2, dy: -2.5 },  // London / UK
-            { dx: 3.8, dy: 1.0 },    // Prague / Central Europe
-            { dx: -4.0, dy: 3.5 },   // Paris / France
-            { dx: 2.2, dy: -6.5 },   // Stockholm / Scandinavia
-            { dx: 1.2, dy: 6.8 },    // Milan / Italy
-          ];
-        } else {
-          // UAE / Dubai / Gulf OTC Desk:
-          // Center ~65.5, 35.0
-          return [
-            { dx: -1.2, dy: -3.5 },  // Persian Gulf / Qatar (Suspect #1 priority)
-            { dx: 3.2, dy: 1.5 },    // Oman / Muscat
-            { dx: -3.8, dy: 1.2 },   // Riyadh / Saudi Arabia
-            { dx: -2.0, dy: 5.5 },   // Yemen / Red Sea
-            { dx: 2.8, dy: -2.2 },   // Strait of Hormuz
-            { dx: -4.8, dy: -2.8 },  // Kuwait / Iraq
-            { dx: 4.8, dy: 4.2 },    // Indian Ocean Ingress
-            { dx: -1.2, dy: 7.5 },   // Gulf of Aden
-          ];
-        }
-      };
-
-      Object.entries(clusterMembers).forEach(([cid, members]) => {
-        const hub = posMap[cid] ?? { x: 50, y: 50 };
-        const slots = getGeoSlots(cid, hub.x, hub.y);
-
-        // Sort to place suspects and high-risk nodes in slot 0, 1, 2
-        const sorted = [...members].sort((a, b) => {
-          if (a.type === "suspect" && b.type !== "suspect") return -1;
-          if (b.type === "suspect" && a.type !== "suspect") return 1;
-          const riskA = a.risk ?? 0;
-          const riskB = b.risk ?? 0;
-          if (riskA !== riskB) return riskB - riskA;
-          return a.id.localeCompare(b.id);
-        });
-
-        sorted.forEach((m, mi) => {
-          const slot = slots[mi % slots.length]!;
-          const x = hub.x + slot.dx;
-          const y = hub.y + slot.dy;
-          posMap[m.id] = {
-            x: Math.min(94, Math.max(6, Math.round(x * 10) / 10)),
-            y: Math.min(88, Math.max(12, Math.round(y * 10) / 10)),
-          };
-        });
-      });
-
-      // Unclustered international hops placed at tactical transit nodes
-      const globalTransitHops = [
-        { x: 23.5, y: 28.0 }, // US East Coast (FinCEN / FBI)
-        { x: 79.0, y: 48.5 }, // Singapore Financial Nexus
-        { x: 32.0, y: 55.0 }, // South America (Brazil)
-        { x: 88.0, y: 64.0 }, // Australia (Sydney)
-        { x: 87.5, y: 27.5 }, // Japan (Tokyo)
-        { x: 48.5, y: 35.0 }, // North Africa (Casablanca)
-      ];
-
-      unclustered.forEach((un, ui) => {
-        const pt = globalTransitHops[ui % globalTransitHops.length]!;
-        posMap[un.id] = { x: pt.x, y: pt.y };
-      });
-    } else if (mode === "constellation") {
+    if (mode === "constellation") {
       // 1. Constellation: 4 Balanced Quadrant Anchors with wide central corridors
       const clusterCenters: Record<string, { cx: number; cy: number; isTop: boolean }> = {
-        cluster_0: { cx: 25, cy: 30, isTop: true },
-        cluster_1: { cx: 75, cy: 30, isTop: true },
-        cluster_2: { cx: 25, cy: 74, isTop: false },
-        cluster_3: { cx: 75, cy: 74, isTop: false },
-        c1: { cx: 25, cy: 30, isTop: true },
-        c2: { cx: 75, cy: 74, isTop: false },
+        cluster_0: { cx: 22, cy: 26, isTop: true },   // Top-Left: LockBit Ransomware
+        cluster_1: { cx: 78, cy: 26, isTop: true },   // Top-Right: UPI Mules (CBI)
+        cluster_2: { cx: 22, cy: 74, isTop: false },  // Bottom-Left: Wasabi CoinJoin
+        cluster_3: { cx: 78, cy: 74, isTop: false },  // Bottom-Right: Tor Anonymized Relays
+        c1: { cx: 22, cy: 26, isTop: true },
+        c2: { cx: 78, cy: 74, isTop: false },
       };
 
       const fallbackList = [
-        { cx: 25, cy: 30, isTop: true },
-        { cx: 75, cy: 30, isTop: true },
-        { cx: 25, cy: 74, isTop: false },
-        { cx: 75, cy: 74, isTop: false },
+        { cx: 22, cy: 26, isTop: true },
+        { cx: 78, cy: 26, isTop: true },
+        { cx: 22, cy: 74, isTop: false },
+        { cx: 78, cy: 74, isTop: false },
       ];
 
       const clusterNodes = currentNodes.filter((n) => n.type === "cluster");
@@ -722,12 +560,10 @@ export function GraphCanvas({
 
       // Unclustered nodes along center bridge
       unclustered.forEach((un, ui) => {
-        const angle = (ui / Math.max(1, unclustered.length)) * 2 * Math.PI;
-        const x = 50 + 7.5 * Math.cos(angle);
-        const y = 50 + 6.5 * Math.sin(angle);
+        const step = unclustered.length <= 1 ? 50 : 36 + (ui / (unclustered.length - 1)) * 28;
         posMap[un.id] = {
-          x: Math.round(x * 10) / 10,
-          y: Math.round(y * 10) / 10,
+          x: 50,
+          y: Math.round(step * 10) / 10,
         };
       });
 
@@ -831,10 +667,10 @@ export function GraphCanvas({
           const isSuspectJ = nj.type === "suspect";
 
           // Calibrated pixel clearance between center points (preserves safe Crown geometry)
-          let reqDistPx = 65; // standard nodes (circle 32px + safety margin)
-          if (isClusterI && isClusterJ) reqDistPx = 200; // between two clusters
-          else if (isClusterI || isClusterJ) reqDistPx = 88; // node vs cluster hub
-          else if (isSuspectI || isSuspectJ) reqDistPx = 78; // node vs suspect threat aura
+          let reqDistPx = 76; // standard nodes (circle 32px + safety margin + label)
+          if (isClusterI && isClusterJ) reqDistPx = 250; // between two clusters
+          else if (isClusterI || isClusterJ) reqDistPx = 105; // node vs cluster hub
+          else if (isSuspectI || isSuspectJ) reqDistPx = 92; // node vs suspect threat aura
 
           if (distPx < reqDistPx) {
             const overlap = (reqDistPx - distPx) / distPx;
@@ -908,17 +744,40 @@ export function GraphCanvas({
   }, [layoutMode, nodes, computePositions]);
 
   /* -------------------------------------------------------------------------- */
-  /* Scroll & Pan Handlers (Mouse Wheel Zoom & Background Dragging)              */
+  /* Cursor-Pinned Precision Zoom & Smooth Pan Engine                           */
   /* -------------------------------------------------------------------------- */
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const zoomDelta = e.deltaY < 0 ? 0.12 : -0.12;
-    setView((v) => ({
-      ...v,
-      s: Math.min(3.5, Math.max(0.35, +(v.s + zoomDelta).toFixed(2))),
-    }));
-  };
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = el.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left - rect.width / 2;
+      const offsetY = e.clientY - rect.top - rect.height / 2;
+
+      // Smooth exponential zoom dampening
+      const zoomFactor = Math.exp(-e.deltaY * 0.0015);
+
+      setView((v) => {
+        const nextScale = Math.min(3.0, Math.max(0.4, +(v.s * zoomFactor).toFixed(3)));
+        if (nextScale === v.s) return v;
+        const scaleRatio = nextScale / v.s;
+        const nextX = offsetX - (offsetX - v.x) * scaleRatio;
+        const nextY = offsetY - (offsetY - v.y) * scaleRatio;
+        return {
+          s: nextScale,
+          x: Math.round(nextX * 10) / 10,
+          y: Math.round(nextY * 10) / 10,
+        };
+      });
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
     // Only initiate canvas panning on left mouse button on background
@@ -946,37 +805,46 @@ export function GraphCanvas({
     };
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent) => {
-    if (dragRef.current && wrapRef.current) {
-      const wrapRect = wrapRef.current.getBoundingClientRect();
-      const dx = ((e.clientX - dragRef.current.startMouseX) / (wrapRect.width * view.s)) * 100;
-      const dy = ((e.clientY - dragRef.current.startMouseY) / (wrapRect.height * view.s)) * 100;
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (dragRef.current && wrapRef.current) {
+        const wrapRect = wrapRef.current.getBoundingClientRect();
+        const dx = ((e.clientX - dragRef.current.startMouseX) / (wrapRect.width * view.s)) * 100;
+        const dy = ((e.clientY - dragRef.current.startMouseY) / (wrapRect.height * view.s)) * 100;
 
-      const newX = Math.min(96, Math.max(4, dragRef.current.startNodeX + dx));
-      const newY = Math.min(94, Math.max(6, dragRef.current.startNodeY + dy));
+        const newX = Math.min(96, Math.max(4, dragRef.current.startNodeX + dx));
+        const newY = Math.min(94, Math.max(6, dragRef.current.startNodeY + dy));
 
-      setPositions((prev) => ({
-        ...prev,
-        [dragRef.current!.id]: { x: Math.round(newX * 10) / 10, y: Math.round(newY * 10) / 10 },
-      }));
-      return;
-    }
+        setPositions((prev) => ({
+          ...prev,
+          [dragRef.current!.id]: { x: Math.round(newX * 10) / 10, y: Math.round(newY * 10) / 10 },
+        }));
+        return;
+      }
 
-    if (isPanningRef.current) {
-      const dx = e.clientX - panStartRef.current.mouseX;
-      const dy = e.clientY - panStartRef.current.mouseY;
-      setView((v) => ({
-        ...v,
-        x: panStartRef.current.viewX + dx,
-        y: panStartRef.current.viewY + dy,
-      }));
-    }
-  };
+      if (isPanningRef.current) {
+        const dx = e.clientX - panStartRef.current.mouseX;
+        const dy = e.clientY - panStartRef.current.mouseY;
+        setView((v) => ({
+          ...v,
+          x: panStartRef.current.viewX + dx,
+          y: panStartRef.current.viewY + dy,
+        }));
+      }
+    };
 
-  const handleCanvasMouseUp = () => {
-    isPanningRef.current = false;
-    dragRef.current = null;
-  };
+    const handleWindowMouseUp = () => {
+      isPanningRef.current = false;
+      dragRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    };
+  }, [view.s]);
 
   /* -------------------------------------------------------------------------- */
   /* Connected Money Trail Tracing ("Follow the Money")                         */
@@ -1055,16 +923,34 @@ export function GraphCanvas({
     if (node) centerOn(node);
   }, [focusId, nodes, centerOn]);
 
-  const zoom = (delta: number) =>
-    setView((v) => ({ ...v, s: Math.min(3.5, Math.max(0.35, +(v.s + delta).toFixed(2))) }));
+  const zoomIn = () => {
+    setView((v) => {
+      const nextScale = Math.min(3.0, +(v.s * 1.25).toFixed(2));
+      const ratio = nextScale / v.s;
+      return { s: nextScale, x: Math.round(v.x * ratio), y: Math.round(v.y * ratio) };
+    });
+  };
+
+  const zoomOut = () => {
+    setView((v) => {
+      const nextScale = Math.max(0.4, +(v.s * 0.8).toFixed(2));
+      const ratio = nextScale / v.s;
+      return { s: nextScale, x: Math.round(v.x * ratio), y: Math.round(v.y * ratio) };
+    });
+  };
+
+  const resetZoom = () => {
+    setView({ s: 1, x: 0, y: 0 });
+    toast.info("Viewport Centered", { description: "Reset camera to 1.00× standard fit." });
+  };
 
   const handleAutoOrganise = useCallback(() => {
-    const fresh = computePositions("geospatial", nodes);
+    const fresh = computePositions("constellation", nodes);
     setPositions(fresh);
-    setLayoutMode("geospatial");
+    setLayoutMode("constellation");
     setView({ s: 1, x: 0, y: 0 });
     toast.success("Graph Layout Auto-Organised", {
-      description: "Geospatial flight coordinates & zero-collision rules applied.",
+      description: "Balanced 4-quadrant geometry & zero-collision rules applied.",
     });
   }, [computePositions, nodes]);
 
@@ -1076,12 +962,10 @@ export function GraphCanvas({
   /* -------------------------------------------------------------------------- */
   return (
     <div
+      ref={wrapRef}
       className="relative h-full w-full overflow-hidden bg-[#0A0E14] select-none cursor-grab active:cursor-grabbing"
       onClick={() => onSelect(null)}
-      onWheel={handleWheel}
       onMouseDown={handleCanvasMouseDown}
-      onMouseMove={handleCanvasMouseMove}
-      onMouseUp={handleCanvasMouseUp}
     >
       {/* High-Precision Tactical Grid Background */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[radial-gradient(#1C232E_1px,transparent_1px)] [background-size:20px_20px]" />
@@ -1105,32 +989,20 @@ export function GraphCanvas({
         <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded border border-[#1C232E]">
           <button
             type="button"
-            onClick={() => setLayoutMode("geospatial")}
-            className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
-              layoutMode === "geospatial"
-                ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
-                : "text-[#7D8590] hover:text-[#E6EDF3]"
-            }`}
-            title="Geospatial World Map Defense View"
-          >
-            <Globe size={11} /> MAP
-          </button>
-          <button
-            type="button"
             onClick={() => setLayoutMode("constellation")}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "constellation"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
                 : "text-[#7D8590] hover:text-[#E6EDF3]"
             }`}
-            title="Constellation Orbital View"
+            title="Constellation 4-Quadrant View"
           >
             <Radio size={11} /> CONSTELLATION
           </button>
           <button
             type="button"
             onClick={() => setLayoutMode("flow")}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "flow"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
                 : "text-[#7D8590] hover:text-[#E6EDF3]"
@@ -1142,7 +1014,7 @@ export function GraphCanvas({
           <button
             type="button"
             onClick={() => setLayoutMode("force")}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
               layoutMode === "force"
                 ? "bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40 shadow-[0_0_8px_rgba(57,255,136,0.2)]"
                 : "text-[#7D8590] hover:text-[#E6EDF3]"
@@ -1194,30 +1066,30 @@ export function GraphCanvas({
 
         <span className="h-4 w-px bg-[#1C232E] mx-0.5" />
 
-        {/* Zoom & Canvas Actions */}
+        {/* Zoom & Canvas Precision Actions */}
         <button
           type="button"
-          onClick={() => zoom(0.25)}
+          onClick={zoomIn}
           title="Zoom In (or use Mouse Wheel)"
-          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
+          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3] transition-colors"
         >
           <ZoomIn size={13} />
         </button>
         <button
           type="button"
-          onClick={() => zoom(-0.25)}
+          onClick={zoomOut}
           title="Zoom Out (or use Mouse Wheel)"
-          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
+          className="rounded p-1 text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3] transition-colors"
         >
           <ZoomOut size={13} />
         </button>
         <button
           type="button"
-          onClick={() => setView({ s: 1, x: 0, y: 0 })}
-          title="Reset Fit"
-          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-mono text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3]"
+          onClick={resetZoom}
+          title="Reset Zoom to 100% Fit"
+          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-mono text-[#7D8590] hover:bg-[#1C232E] hover:text-[#E6EDF3] transition-colors tabular-nums"
         >
-          <Crosshair size={11} /> FIT
+          <Crosshair size={11} /> {Math.round(view.s * 100)}%
         </button>
 
         {/* 1-Click Auto Organise Button */}
@@ -1331,9 +1203,9 @@ export function GraphCanvas({
       )}
 
       {/* Main Graph Canvas Container */}
-      <div ref={wrapRef} className="absolute inset-0">
+      <div className="absolute inset-0">
         <div
-          className="absolute inset-0 origin-center transition-transform duration-75 ease-out pointer-events-auto"
+          className="absolute inset-0 origin-center pointer-events-auto"
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})` }}
         >
           {/* SVG Connection Layer with Directional Arrowheads & Curved Trails */}
@@ -1392,38 +1264,114 @@ export function GraphCanvas({
               </filter>
             </defs>
 
-            {/* Real World Map Vector Layer */}
-            {layoutMode === "geospatial" && (
-              <WorldMapVector
-                showRadarSweep={flowAnimation}
-                showGraticules={true}
-                showJurisdictionZones={true}
-              />
-            )}
-
             {/* Tactical Territorial Quadrant Hulls (Constellation View) */}
             {layoutMode === "constellation" && (
-              <g className="cluster-hulls pointer-events-none">
+              <g className="cluster-zones pointer-events-none select-none">
                 {[
-                  { cx: 25, cy: 33, color: "#EF4444", label: "LOCKBIT 3.0 EXTORTION NEXUS" },
-                  { cx: 75, cy: 33, color: "#F59E0B", label: "TELEGRAM UPI MULE RING" },
-                  { cx: 25, cy: 72, color: "#8B5CF6", label: "WASABI COINJOIN POOL" },
-                  { cx: 75, cy: 72, color: "#38BDF8", label: "ANONYMIZED TOR RELAYS" },
-                ].map((hull, hi) => (
-                  <g key={`hull-${hi}`}>
-                    <ellipse
-                      cx={hull.cx}
-                      cy={hull.cy}
-                      rx={24}
-                      ry={19}
-                      fill="none"
-                      stroke={hull.color}
-                      strokeWidth="0.25"
+                  {
+                    x: 3,
+                    y: 6,
+                    w: 42,
+                    h: 40,
+                    color: "#EF4444",
+                    tag: "ZONE 01 // LOCKBIT EXTORTION NEXUS",
+                    sub: "HIGH-RISK RANSOMWARE THREAT CORRIDOR",
+                  },
+                  {
+                    x: 55,
+                    y: 6,
+                    w: 42,
+                    h: 40,
+                    color: "#F59E0B",
+                    tag: "ZONE 02 // UPI-CRYPTO MULE RING",
+                    sub: "SMURFING & LAYERED CASH-OUT NETWORK",
+                  },
+                  {
+                    x: 3,
+                    y: 54,
+                    w: 42,
+                    h: 40,
+                    color: "#8B5CF6",
+                    tag: "ZONE 03 // WASABI COINJOIN POOL",
+                    sub: "ZERO-LINK ANONYMIZATION PROTOCOL",
+                  },
+                  {
+                    x: 55,
+                    y: 54,
+                    w: 42,
+                    h: 40,
+                    color: "#00F0FF",
+                    tag: "ZONE 04 // TOR ONION RELAYS",
+                    sub: "DARKNET INFRASTRUCTURE & ROUTING EXITS",
+                  },
+                ].map((zone, zi) => (
+                  <g key={`zone-${zi}`}>
+                    {/* Zone Boundary Box */}
+                    <rect
+                      x={zone.x}
+                      y={zone.y}
+                      width={zone.w}
+                      height={zone.h}
+                      rx={1.5}
+                      fill={zone.color}
+                      fillOpacity="0.015"
+                      stroke={zone.color}
+                      strokeWidth="0.22"
                       strokeDasharray="2 3"
-                      strokeOpacity="0.4"
-                      className="animate-pulse"
-                      style={{ animationDuration: "5s" }}
+                      strokeOpacity="0.3"
                     />
+                    {/* Corner Accent Brackets */}
+                    <path
+                      d={`M ${zone.x + 3} ${zone.y} L ${zone.x} ${zone.y} L ${zone.x} ${zone.y + 3}`}
+                      fill="none"
+                      stroke={zone.color}
+                      strokeWidth="0.5"
+                      strokeOpacity="0.6"
+                    />
+                    <path
+                      d={`M ${zone.x + zone.w - 3} ${zone.y} L ${zone.x + zone.w} ${zone.y} L ${zone.x + zone.w} ${zone.y + 3}`}
+                      fill="none"
+                      stroke={zone.color}
+                      strokeWidth="0.5"
+                      strokeOpacity="0.6"
+                    />
+                    <path
+                      d={`M ${zone.x} ${zone.y + zone.h - 3} L ${zone.x} ${zone.y + zone.h} L ${zone.x + 3} ${zone.y + zone.h}`}
+                      fill="none"
+                      stroke={zone.color}
+                      strokeWidth="0.5"
+                      strokeOpacity="0.6"
+                    />
+                    <path
+                      d={`M ${zone.x + zone.w - 3} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h} L ${zone.x + zone.w} ${zone.y + zone.h - 3}`}
+                      fill="none"
+                      stroke={zone.color}
+                      strokeWidth="0.5"
+                      strokeOpacity="0.6"
+                    />
+                    {/* Tactical Header Label */}
+                    <text
+                      x={zone.x + 2}
+                      y={zone.y + 3.2}
+                      fill={zone.color}
+                      fontSize="1.7"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                      letterSpacing="0.08em"
+                      opacity="0.75"
+                    >
+                      {zone.tag}
+                    </text>
+                    <text
+                      x={zone.x + 2}
+                      y={zone.y + 5.2}
+                      fill="#7D8590"
+                      fontSize="1.2"
+                      fontFamily="monospace"
+                      opacity="0.5"
+                    >
+                      {zone.sub}
+                    </text>
                   </g>
                 ))}
               </g>
@@ -1448,20 +1396,9 @@ export function GraphCanvas({
               const my = (aPos.y + bPos.y) / 2;
               const dx = bPos.x - aPos.x;
               const dy = bPos.y - aPos.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
 
-              // Parabolic Great-Circle Flight Arcs in Geospatial Mode
-              let cx: number;
-              let cy: number;
-              if (layoutMode === "geospatial") {
-                const arcHeight = Math.min(10, Math.max(3.2, dist * 0.18));
-                // Geodesic upward arc towards northern sky
-                cx = +(mx - (dy / (dist || 1)) * arcHeight * 0.3).toFixed(1);
-                cy = +(my - Math.abs(dx / (dist || 1)) * arcHeight).toFixed(1);
-              } else {
-                cx = +(mx - dy * 0.08).toFixed(1);
-                cy = +(my + dx * 0.08).toFixed(1);
-              }
+              const cx = +(mx - dy * 0.08).toFixed(1);
+              const cy = +(my + dx * 0.08).toFixed(1);
 
               const pathD = `M ${aPos.x} ${aPos.y} Q ${cx} ${cy} ${bPos.x} ${bPos.y}`;
 
@@ -1524,33 +1461,19 @@ export function GraphCanvas({
                     onMouseLeave={() => setHoverEdge((h) => (h === edgeKey ? null : h))}
                   />
 
-                  {/* Live Fund Transfer Animated Particles (Staggered Dual Photons) */}
+                  {/* Live Fund Transfer Animated Particles (Glowing Photon) */}
                   {flowAnimation && (isHighlighted || isSuspectEdge) && (
-                    <>
-                      <circle
-                        r={isHighlighted ? 0.9 : 0.75}
-                        fill={isSuspectEdge ? "#FF3B3B" : "#39FF88"}
-                        filter="url(#glowEffect)"
-                      >
-                        <animateMotion
-                          path={pathD}
-                          dur={isSuspectEdge ? "1.8s" : "2.8s"}
-                          repeatCount="indefinite"
-                        />
-                      </circle>
-                      <circle
-                        r={0.55}
-                        fill={isSuspectEdge ? "#FFD60A" : "#00F0FF"}
-                        opacity="0.85"
-                      >
-                        <animateMotion
-                          path={pathD}
-                          dur={isSuspectEdge ? "1.8s" : "2.8s"}
-                          begin={isSuspectEdge ? "0.9s" : "1.4s"}
-                          repeatCount="indefinite"
-                        />
-                      </circle>
-                    </>
+                    <circle
+                      r={isHighlighted ? 0.85 : 0.65}
+                      fill={isSuspectEdge ? "#FF3B3B" : "#39FF88"}
+                      filter="url(#glowEffect)"
+                    >
+                      <animateMotion
+                        path={pathD}
+                        dur={isSuspectEdge ? "2.0s" : "2.8s"}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
                   )}
 
                   {/* Sequential Hop Badge on Highlighted Trail (Only on true BTC fund flows) */}
@@ -1656,9 +1579,9 @@ export function GraphCanvas({
             }
           }}
         >
-          {/* Tactical Geospatial Minimap Graticules */}
-          <line x1="0" y1="40" x2="100" y2="40" stroke="#1C2D42" strokeWidth="0.4" strokeDasharray="1 2" opacity={0.6} />
-          <line x1="50" y1="0" x2="50" y2="80" stroke="#1C2D42" strokeWidth="0.4" strokeDasharray="1 2" opacity={0.6} />
+          {/* Tactical Crosshair Grid */}
+          <line x1="0" y1="40" x2="100" y2="40" stroke="#1C2D42" strokeWidth="0.3" strokeDasharray="1 2" opacity={0.4} />
+          <line x1="50" y1="0" x2="50" y2="80" stroke="#1C2D42" strokeWidth="0.3" strokeDasharray="1 2" opacity={0.4} />
 
           {edges.map((e) => {
             const a = positions[e.from];
