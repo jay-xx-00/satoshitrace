@@ -55,7 +55,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between px-3 py-3 border-b border-[#1C232E]">
         {!isCollapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative grid place-items-center h-7 w-7 shrink-0 rounded-lg border border-[#F7931A]/40 bg-[#0A0E14] overflow-hidden p-0.5 shadow-[0_0_10px_rgba(247,147,26,0.25)]">
+            <div className="relative grid place-items-center h-7 w-7 shrink-0 rounded-lg border border-[#F59E0B]/50 bg-[#041D13] overflow-hidden p-0.5 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
               <img
                 src="/bitcoin_logo.svg"
                 alt="Bitcoin Logo"
@@ -74,7 +74,7 @@ export function Sidebar() {
         )}
 
         {isCollapsed && (
-          <div className="mx-auto grid place-items-center h-7 w-7 rounded-lg border border-[#F7931A]/40 bg-[#0A0E14] overflow-hidden p-0.5 shadow-[0_0_10px_rgba(247,147,26,0.25)]">
+          <div className="mx-auto grid place-items-center h-7 w-7 rounded-lg border border-[#F59E0B]/50 bg-[#041D13] overflow-hidden p-0.5 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
             <img
               src="/bitcoin_logo.svg"
               alt="Bitcoin Logo"

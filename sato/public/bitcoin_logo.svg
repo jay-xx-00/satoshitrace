@@ -1,22 +1,70 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <radialGradient id="btcGrad" cx="30%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#FFA826" />
-      <stop offset="60%" stop-color="#F7931A" />
-      <stop offset="100%" stop-color="#D97706" />
+    <!-- Rich 24K Metallic Gold Gradient -->
+    <linearGradient id="goldRim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE57F" />
+      <stop offset="25%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#D97706" />
+      <stop offset="75%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#92400E" />
+    </linearGradient>
+
+    <linearGradient id="goldGlyph" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#FFF3B0" />
+      <stop offset="20%" stop-color="#FDE047" />
+      <stop offset="45%" stop-color="#F59E0B" />
+      <stop offset="70%" stop-color="#D97706" />
+      <stop offset="95%" stop-color="#B45309" />
+    </linearGradient>
+
+    <!-- Deep Cyber Emerald Coin Field -->
+    <radialGradient id="emeraldField" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#0E5A3C" />
+      <stop offset="45%" stop-color="#073A25" />
+      <stop offset="80%" stop-color="#042215" />
+      <stop offset="100%" stop-color="#02140D" />
     </radialGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.35" />
+
+    <!-- Electric Emerald Ring Glow -->
+    <linearGradient id="emeraldNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#39FF88" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <!-- Drop Shadow for 3D Minted Depth -->
+    <filter id="glyphShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.65" />
+      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#F59E0B" flood-opacity="0.25" />
     </filter>
   </defs>
 
-  <!-- Circular Coin Body with Outer Glow -->
-  <circle cx="32" cy="32" r="30" fill="url(#btcGrad)" stroke="#FFA826" stroke-width="1" />
+  <!-- Outer Metallic Gold Bezel -->
+  <circle cx="32" cy="32" r="30.5" fill="url(#goldRim)" />
 
-  <!-- Iconic Tilted Bitcoin Glyph (₿) -->
+  <!-- Coin Edge Inset Rim -->
+  <circle cx="32" cy="32" r="28" fill="#02140D" stroke="#B45309" stroke-width="0.75" />
+
+  <!-- Deep Emerald Green Coin Face -->
+  <circle cx="32" cy="32" r="26.5" fill="url(#emeraldField)" />
+
+  <!-- Minted Knurling / Dentils (Green & Gold Precision Markings) -->
+  <circle cx="32" cy="32" r="25.5" stroke="url(#goldRim)" stroke-width="0.8" stroke-dasharray="1.2 1.6" opacity="0.85" />
+
+  <!-- Subtle Forensic Radar Reticle Ring in Neon Emerald -->
+  <circle cx="32" cy="32" r="21" stroke="url(#emeraldNeon)" stroke-width="0.75" stroke-dasharray="5 3" opacity="0.5" />
+  
+  <!-- Subtle Crosshair Ticks in Neon Emerald -->
+  <line x1="32" y1="6" x2="32" y2="9.5" stroke="#39FF88" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+  <line x1="32" y1="54.5" x2="32" y2="58" stroke="#39FF88" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+  <line x1="6" y1="32" x2="9.5" y2="32" stroke="#39FF88" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+  <line x1="54.5" y1="32" x2="58" y2="32" stroke="#39FF88" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+
+  <!-- Authentic 14-Degree Tilted Bitcoin ₿ Symbol in 24K Gold -->
   <path
-    d="M45.8 27.6c.55-3.8-2.35-5.9-6.35-7.25l1.3-5.2-3.15-.8-1.25 5c-.8-.2-1.7-.4-2.55-.6l1.25-5.05-3.15-.8-1.3 5.15c-.7-.15-1.35-.35-2-.5l-4.35-1.1-.85 3.45s1.7.39 1.66.42c.93.23 1.1.85 1.07 1.34l-1.07 4.3c.06.02.14.05.23.09l-.23-.06-1.5 6.02c-.13.33-.46.83-1.2.65.03.04-1.66-.42-1.66-.42l-1.6 3.7 4.1 1.02c.76.19 1.5.39 2.24.58l-1.31 5.25 3.15.79 1.3-5.18c.86.23 1.7.45 2.52.65l-1.29 5.17 3.15.78 1.32-5.28c5.38.99 9.38.59 11.08-4.25 1.37-3.9-.07-6.16-2.88-7.63 2.05-.47 3.6-1.82 4.02-4.6zm-7.18 10.15c-.98 3.93-7.58 1.8-9.72 1.27l1.73-6.95c2.14.53 8.99 1.58 7.99 5.68zm1.02-10.17c-.89 3.58-6.4 1.76-8.19 1.32l1.57-6.3c1.79.45 7.51 1.3 6.62 4.98z"
-    fill="#FFFFFF"
-    filter="url(#glow)"
+    d="M46.103 27.444c.637-4.258-2.605-6.547-7.038-8.074l1.438-5.768-3.511-.875-1.4 5.616c-.923-.23-1.871-.447-2.813-.662l1.41-5.653-3.509-.875-1.439 5.766c-.764-.174-1.514-.346-2.242-.527l.004-.018-4.842-1.209-.934 3.75s2.605.597 2.55.634c1.422.355 1.679 1.296 1.636 2.042l-1.638 6.571c.098.025.225.061.365.117-.117-.029-.242-.061-.371-.092l-2.296 9.205c-.174.432-.615 1.08-1.609.834.035.051-2.552-.637-2.552-.637l-1.743 4.019 4.569 1.139c.85.213 1.683.436 2.503.646l-1.453 5.834 3.507.875 1.439-5.772c.958.26 1.888.5 2.798.726l-1.434 5.745 3.511.875 1.453-5.823c5.987 1.133 10.489.676 12.384-4.739 1.527-4.36-.076-6.875-3.226-8.515 2.294-.529 4.022-2.038 4.483-5.155zm-8.022 11.249c-1.085 4.36-8.426 2.003-10.806 1.412l1.928-7.729c2.38.594 10.012 1.77 8.878 6.317zm1.086-11.312c-.99 3.966-7.1 1.951-9.082 1.457l1.748-7.01c1.982.494 8.365 1.416 7.334 5.553z"
+    fill="url(#goldGlyph)"
+    stroke="#FFE57F"
+    stroke-width="0.35"
+    filter="url(#glyphShadow)"
   />
 </svg>
