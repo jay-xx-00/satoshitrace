@@ -49,7 +49,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#E6EDF3]">
-                SATOSHITRACE ENGINE & HYPERPARAMETER TUNING
+                SATOSHI TRACE ENGINE & HYPERPARAMETER TUNING
               </h2>
               <p className="text-[10.5px] text-[#7D8590] mt-0.5">
                 Configure Three-Model Consensus Gate, Section 65B legal attestations, and air-gap telemetry.

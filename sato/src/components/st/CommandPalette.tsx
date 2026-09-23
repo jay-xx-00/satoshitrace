@@ -179,7 +179,7 @@ export function CommandPalette({
         <div className="flex items-center justify-between border-b border-[#1C232E] px-4 py-2 text-[10.5px] text-[#7D8590] bg-[#0A0E14]">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[#39FF88] animate-pulse" />
-            <span className="font-bold text-[#E6EDF3]">SATOSHITRACE COMMAND PALETTE</span>
+            <span className="font-bold text-[#E6EDF3]">SATOSHI TRACE COMMAND PALETTE</span>
           </div>
           <div className="flex items-center gap-3">
             <span>↑↓ TO NAVIGATE</span>

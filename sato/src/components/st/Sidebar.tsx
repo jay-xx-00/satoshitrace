@@ -63,10 +63,10 @@ export function Sidebar() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-[12px] font-mono font-bold tracking-widest text-[#E6EDF3] leading-none">
-                SATOSHITRACE
+              <div className="text-[12px] font-mono font-bold tracking-widest text-[#E6EDF3] leading-none whitespace-nowrap">
+                SATOSHI TRACE
               </div>
-              <div className="text-[9px] font-mono text-[#39FF88] tracking-wider mt-0.5">
+              <div className="text-[9px] font-mono text-[#39FF88] tracking-wider mt-0.5 whitespace-nowrap">
                 CBI FORENSIC CORE
               </div>
             </div>
