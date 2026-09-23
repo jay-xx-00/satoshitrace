@@ -17,6 +17,7 @@ export interface GlobalStats {
   active_jobs: number;
   system_status: string;
   verified_false_positive_rate: string;
+  model_accuracy?: string;
 }
 
 export interface BackendAlert {

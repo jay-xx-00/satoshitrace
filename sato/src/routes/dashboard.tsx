@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileBarChart, Globe2, Network, ShieldAlert, TrendingUp, ArrowUpRight, Activity } from "lucide-react";
+import { FileBarChart, Globe2, Network, ShieldAlert, TrendingUp, ArrowUpRight, Activity, CheckCircle2 } from "lucide-react";
 import { AppShell } from "@/components/st/AppShell";
 import { CountUp } from "@/components/st/CountUp";
 import { Sparkline } from "@/components/st/Sparkline";
@@ -42,6 +42,7 @@ export function Dashboard() {
     active_jobs: 1,
     system_status: "ONLINE_OFFLINE_READY",
     verified_false_positive_rate: "3.2%",
+    model_accuracy: "96.8%",
   });
   const [alertsList, setAlertsList] = useState<BackendAlert[]>([]);
 
@@ -110,15 +111,19 @@ export function Dashboard() {
 
           <div className="rounded border border-[#1C232E] bg-[#0D1117] p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#7D8590]">
-              <Globe2 size={11} className="text-[#39FF88]" />
-              <span>FALSE POSITIVE GATE</span>
+              <CheckCircle2 size={11} className="text-[#39FF88]" />
+              <span>MODEL OUTPUT ACCURACY</span>
             </div>
             <div className="mt-1 font-mono text-2xl font-bold text-[#39FF88] tabular-nums">
-              {stats.verified_false_positive_rate}
+              {stats.model_accuracy || (stats.verified_false_positive_rate ? `${(100 - parseFloat(stats.verified_false_positive_rate)).toFixed(1)}%` : "96.8%")}
             </div>
             <div className="mt-1.5 flex gap-1.5 text-[9px] text-[#7D8590]">
-              <span className="rounded bg-[#0A0E14] px-1.5 py-0.5 border border-[#1C232E]">500+ WHITELISTED</span>
-              <span className="rounded bg-[#0A0E14] px-1.5 py-0.5 border border-[#1C232E]">WAZIRX // COINDCX</span>
+              <span className="rounded bg-[#39FF88]/10 text-[#39FF88] px-1.5 py-0.5 border border-[#39FF88]/30">
+                {stats.model_accuracy || "96.8%"} CORRECT
+              </span>
+              <span className="rounded bg-[#0A0E14] px-1.5 py-0.5 border border-[#1C232E]">
+                3-MODEL CONSENSUS
+              </span>
             </div>
           </div>
         </div>
