@@ -259,6 +259,21 @@
   animation: radar-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
+/* ── Flowing Red Cyber Trail ─────────────────────────────────── */
+
+@keyframes edgeFlow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1.6;
+  }
+}
+
+.animate-edge-flow {
+  animation: edgeFlow 1s linear infinite;
+}
+
 /* ── Monospace Utilities ──────────────────────────────────────── */
 
 .mono-xs {

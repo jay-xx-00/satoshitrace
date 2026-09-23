@@ -1230,6 +1230,20 @@ export function GraphCanvas({
                 <feGaussianBlur stdDeviation="0.4" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
+
+              <style>{`
+                @keyframes edgeFlow {
+                  from {
+                    stroke-dashoffset: 0;
+                  }
+                  to {
+                    stroke-dashoffset: -1.6;
+                  }
+                }
+                .animate-edge-flow {
+                  animation: edgeFlow 1s linear infinite;
+                }
+              `}</style>
             </defs>
 
             {/* Tactical Territorial Quadrant Hulls (Constellation View) */}
@@ -1392,7 +1406,13 @@ export function GraphCanvas({
                           : 0.35
                     }
                     strokeWidth={isHighlighted ? 0.22 : isSuspectEdge ? 0.14 : 0.08}
-                    strokeDasharray={isSuspectEdge ? "0.8 0.8" : undefined}
+                    strokeDasharray={isSuspectEdge || isHighlighted ? "0.8 0.8" : undefined}
+                    className={isSuspectEdge || isHighlighted ? "animate-edge-flow" : ""}
+                    style={
+                      isSuspectEdge || isHighlighted
+                        ? { animation: "edgeFlow 1s linear infinite" }
+                        : undefined
+                    }
                     markerEnd={
                       isHighlighted
                         ? "url(#trailArrow)"
